@@ -17,8 +17,10 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Clean Lockfile and Install Dependencies
+        run: |
+          rm -f package-lock.json
+          npm install
 
       - name: Build and Package App
         run: npm run electron:build
