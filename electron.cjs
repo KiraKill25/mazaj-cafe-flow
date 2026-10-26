@@ -3,14 +3,13 @@ const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
 
-// Enforce single instance lock to prevent cache file lock collisions
+// Enforce single instance lock
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
   app.quit();
 } else {
   app.on('second-instance', (event, commandLine, workingDirectory) => {
-    // Focus existing window if someone tries to launch a second instance
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
@@ -47,6 +46,7 @@ if (!gotTheLock) {
       process.env.HOST = '127.0.0.1';
       process.env.NODE_ENV = 'production';
 
+      // Start Nitro server
       import(pathToFileURL(serverScript).href).catch((err) => {
         dialog.showErrorBox('SERVER RUNTIME ERROR', err.message);
       });
@@ -82,9 +82,17 @@ if (!gotTheLock) {
     });
   });
 
+  // CRITICAL FIX: Force-kill process handles and release file locks on exit
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
       app.quit();
     }
+  });
+
+  app.on('will-quit', () => {
+    // Forces the underlying Node/Nitro handles to drop file locks immediately
+    setTimeout(() => {
+      process.exit(0);
+    }, 500);
   });
 }
