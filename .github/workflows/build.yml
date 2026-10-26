@@ -18,6 +18,7 @@ jobs:
           node-version: 20
 
       - name: Clean Lockfile and Install Dependencies
+        shell: bash
         run: |
           rm -f package-lock.json
           npm install
