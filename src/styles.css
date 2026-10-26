@@ -40,6 +40,10 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --font-display: "Bricolage Grotesque", "Cairo", sans-serif;
+  --font-sans: "Nunito Sans", "Cairo", sans-serif;
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -62,26 +66,28 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --radius: 0.875rem;
+  --background: oklch(0.97 0.018 80);
+  --foreground: oklch(0.25 0.04 45);
+  --card: oklch(0.995 0.008 85);
+  --card-foreground: oklch(0.25 0.04 45);
+  --popover: oklch(0.995 0.008 85);
+  --popover-foreground: oklch(0.25 0.04 45);
+  --primary: oklch(0.6 0.2 32);
+  --primary-foreground: oklch(0.99 0.01 85);
+  --secondary: oklch(0.93 0.03 75);
+  --secondary-foreground: oklch(0.25 0.04 45);
+  --muted: oklch(0.93 0.025 75);
+  --muted-foreground: oklch(0.48 0.04 50);
+  --accent: oklch(0.83 0.15 80);
+  --accent-foreground: oklch(0.28 0.05 50);
+  --success: oklch(0.55 0.13 150);
+  --success-foreground: oklch(0.99 0.01 85);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.99 0.01 85);
+  --border: oklch(0.88 0.03 70);
+  --input: oklch(0.86 0.03 70);
+  --ring: oklch(0.6 0.2 32);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -98,39 +104,36 @@
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --background: oklch(0.2 0.02 50);
+  --foreground: oklch(0.94 0.02 80);
+  --card: oklch(0.26 0.025 50);
+  --card-foreground: oklch(0.94 0.02 80);
+  --popover: oklch(0.26 0.025 50);
+  --popover-foreground: oklch(0.94 0.02 80);
+  --primary: oklch(0.68 0.18 40);
+  --primary-foreground: oklch(0.18 0.02 50);
+  --secondary: oklch(0.32 0.03 50);
+  --secondary-foreground: oklch(0.94 0.02 80);
+  --muted: oklch(0.32 0.03 50);
+  --muted-foreground: oklch(0.72 0.03 70);
+  --accent: oklch(0.7 0.13 75);
+  --accent-foreground: oklch(0.2 0.03 50);
+  --success: oklch(0.65 0.14 150);
+  --success-foreground: oklch(0.18 0.02 50);
+  --destructive: oklch(0.62 0.2 25);
+  --destructive-foreground: oklch(0.98 0.01 85);
+  --border: oklch(0.36 0.03 50);
+  --input: oklch(0.4 0.03 50);
+  --ring: oklch(0.68 0.18 40);
 }
+
+@keyframes splash-pop { 0% { transform: scale(0.6) rotate(-8deg); opacity: 0; } 60% { transform: scale(1.06) rotate(2deg); opacity: 1; } 100% { transform: scale(1) rotate(0); } }
+@keyframes splash-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes splash-rise { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes splash-steam { 0% { transform: translate(-50%, 10px) scaleY(0.6); opacity: 0; } 50% { opacity: 1; } 100% { transform: translate(-50%, -20px) scaleY(1.2); opacity: 0; } }
+.splash-logo { animation: splash-pop 0.9s cubic-bezier(.2,.9,.3,1.3) both, splash-float 2.4s ease-in-out 0.9s infinite; }
+.splash-text { animation: splash-rise 0.7s ease-out 0.6s both; }
+.splash-steam { animation: splash-steam 1.6s ease-out 0.5s infinite; }
 
 @layer base {
   * {
@@ -141,4 +144,21 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
+}
+
+html[dir="rtl"] body { font-family: "Cairo", sans-serif; }
+button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+#print-area { display: none; }
+@media print {
+  @page { size: 80mm auto; margin: 0; }
+  body * { visibility: hidden; }
+  #print-area, #print-area * { visibility: visible; }
+  #print-area { display: block; position: absolute; inset: 0 auto auto 0; width: 72mm; color: #000; background: #fff; font-family: "Courier New", monospace; font-size: 12px; }
+  #print-area .receipt { padding: 3mm 4mm; }
+  #print-area .kitchen { break-before: page; page-break-before: always; }
+  #print-area h2 { text-align: center; font-size: 18px; font-weight: 800; margin: 0 0 4px; }
+  #print-area .c { text-align: center; margin: 2px 0; }
+  #print-area .big { font-size: 15px; font-weight: 800; margin: 3px 0; }
+  #print-area .row { display: flex; justify-content: space-between; gap: 6px; margin: 2px 0; }
+  #print-area hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
 }

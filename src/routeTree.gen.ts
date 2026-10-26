@@ -10,33 +10,141 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CashRouteImport } from './routes/cash'
+import { Route as ExpensesRouteImport } from './routes/expenses'
+import { Route as InventoryRouteImport } from './routes/inventory'
+import { Route as ManageRouteImport } from './routes/manage'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as WaiterRouteImport } from './routes/waiter'
+import { Route as ApiPublicWaiterRouteImport } from './routes/api/public/waiter'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CashRoute = CashRouteImport.update({
+  id: '/cash',
+  path: '/cash',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExpensesRoute = ExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventoryRoute = InventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManageRoute = ManageRouteImport.update({
+  id: '/manage',
+  path: '/manage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WaiterRoute = WaiterRouteImport.update({
+  id: '/waiter',
+  path: '/waiter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicWaiterRoute = ApiPublicWaiterRouteImport.update({
+  id: '/api/public/waiter',
+  path: '/api/public/waiter',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/cash': typeof CashRoute
+  '/expenses': typeof ExpensesRoute
+  '/inventory': typeof InventoryRoute
+  '/manage': typeof ManageRoute
+  '/reports': typeof ReportsRoute
+  '/settings': typeof SettingsRoute
+  '/waiter': typeof WaiterRoute
+  '/api/public/waiter': typeof ApiPublicWaiterRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/cash': typeof CashRoute
+  '/expenses': typeof ExpensesRoute
+  '/inventory': typeof InventoryRoute
+  '/manage': typeof ManageRoute
+  '/reports': typeof ReportsRoute
+  '/settings': typeof SettingsRoute
+  '/waiter': typeof WaiterRoute
+  '/api/public/waiter': typeof ApiPublicWaiterRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/cash': typeof CashRoute
+  '/expenses': typeof ExpensesRoute
+  '/inventory': typeof InventoryRoute
+  '/manage': typeof ManageRoute
+  '/reports': typeof ReportsRoute
+  '/settings': typeof SettingsRoute
+  '/waiter': typeof WaiterRoute
+  '/api/public/waiter': typeof ApiPublicWaiterRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/cash'
+    | '/expenses'
+    | '/inventory'
+    | '/manage'
+    | '/reports'
+    | '/settings'
+    | '/waiter'
+    | '/api/public/waiter'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/cash'
+    | '/expenses'
+    | '/inventory'
+    | '/manage'
+    | '/reports'
+    | '/settings'
+    | '/waiter'
+    | '/api/public/waiter'
+  id:
+    | '__root__'
+    | '/'
+    | '/cash'
+    | '/expenses'
+    | '/inventory'
+    | '/manage'
+    | '/reports'
+    | '/settings'
+    | '/waiter'
+    | '/api/public/waiter'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CashRoute: typeof CashRoute
+  ExpensesRoute: typeof ExpensesRoute
+  InventoryRoute: typeof InventoryRoute
+  ManageRoute: typeof ManageRoute
+  ReportsRoute: typeof ReportsRoute
+  SettingsRoute: typeof SettingsRoute
+  WaiterRoute: typeof WaiterRoute
+  ApiPublicWaiterRoute: typeof ApiPublicWaiterRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +156,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cash': {
+      id: '/cash'
+      path: '/cash'
+      fullPath: '/cash'
+      preLoaderRoute: typeof CashRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/expenses': {
+      id: '/expenses'
+      path: '/expenses'
+      fullPath: '/expenses'
+      preLoaderRoute: typeof ExpensesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventory': {
+      id: '/inventory'
+      path: '/inventory'
+      fullPath: '/inventory'
+      preLoaderRoute: typeof InventoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/manage': {
+      id: '/manage'
+      path: '/manage'
+      fullPath: '/manage'
+      preLoaderRoute: typeof ManageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/waiter': {
+      id: '/waiter'
+      path: '/waiter'
+      fullPath: '/waiter'
+      preLoaderRoute: typeof WaiterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/waiter': {
+      id: '/api/public/waiter'
+      path: '/api/public/waiter'
+      fullPath: '/api/public/waiter'
+      preLoaderRoute: typeof ApiPublicWaiterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CashRoute: CashRoute,
+  ExpensesRoute: ExpensesRoute,
+  InventoryRoute: InventoryRoute,
+  ManageRoute: ManageRoute,
+  ReportsRoute: ReportsRoute,
+  SettingsRoute: SettingsRoute,
+  WaiterRoute: WaiterRoute,
+  ApiPublicWaiterRoute: ApiPublicWaiterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
