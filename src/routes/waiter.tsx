@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Minus, Plus, Send, Printer, LogOut, ShoppingBag, X } from "lucide-react";
+import { Minus, Plus, Send, Printer, LogOut, ShoppingBag, X, Search } from "lucide-react";
 import logoAsset from "@/assets/mazaj-logo.jpg.asset.json";
-import { T, fmtDateTime, money, usePos, type Category, type Item } from "@/lib/pos";
+import { T, fmtDateTime, matchItem, money, usePos, type Category, type Item } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { relay, type WaiterOrder } from "@/lib/waiterLink";
@@ -48,6 +48,7 @@ function Waiter() {
   const [table, setTable] = useState("");
   const [note, setNote] = useState("");
   const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState<WaiterOrder | null>(null);
 
@@ -80,7 +81,7 @@ function Waiter() {
   const count = cart.reduce((s, l) => s + l.qty, 0);
   const cur = menu?.currency ?? pos.currency;
   const used = (menu?.categories ?? []).filter((c) => menu?.items.some((i) => i.category === c.id));
-  const items = (menu?.items ?? []).filter((i) => cat === "all" || i.category === cat);
+  const items = (menu?.items ?? []).filter((i) => (q.trim() ? matchItem(i, q) : cat === "all" || i.category === cat));
   const add = (item: Item) => {
     if (item.outOfStock) return;
     setCart((c) => { const f = c.find((l) => l.item.id === item.id); return f ? c.map((l) => (l === f ? { ...l, qty: l.qty + 1 } : l)) : [...c, { item, qty: 1 }]; });
@@ -128,9 +129,16 @@ function Waiter() {
         </div>
       </header>
       {err && <p className="bg-destructive/10 px-4 py-2 text-center text-sm font-bold text-destructive">{err}</p>}
+      <div className="px-3 pt-3">
+        <div className="relative">
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={{ en: "Search the menu…", fr: "Rechercher dans le menu…", ar: "ابحث في القائمة…" }[lang]} className="h-12 w-full rounded-xl border border-input bg-card ps-10 pe-10 font-semibold" />
+          {q && <button onClick={() => setQ("")} aria-label="Clear" className="absolute end-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg bg-muted"><X size={16} /></button>}
+        </div>
+      </div>
       <div className="flex gap-2 overflow-x-auto px-3 py-3">
         {[{ id: "all", label: t.all }, ...used.map((c) => ({ id: c.id, label: c.name[lang] }))].map((c) => (
-          <button key={c.id} onClick={() => setCat(c.id)} className={`h-11 shrink-0 rounded-full px-4 font-bold ${cat === c.id ? "bg-foreground text-background" : "border border-border bg-card"}`}>{c.label}</button>
+          <button key={c.id} onClick={() => { setCat(c.id); setQ(""); }} className={`h-11 shrink-0 rounded-full px-4 font-bold ${!q && cat === c.id ? "bg-foreground text-background" : "border border-border bg-card"}`}>{c.label}</button>
         ))}
       </div>
       {!menu && <p className="py-10 text-center text-muted-foreground">{w.noMenu}</p>}
