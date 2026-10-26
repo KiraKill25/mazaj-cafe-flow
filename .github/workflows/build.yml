@@ -17,11 +17,12 @@ jobs:
         with:
           node-version: 20
 
-      - name: Clean Lockfile and Install Dependencies
+      - name: Clean Cache and Install Dependencies
         shell: bash
         run: |
           rm -f package-lock.json
-          npm install
+          npm cache clean --force
+          npm install --legacy-peer-deps
 
       - name: Build and Package App
         run: npm run electron:build
