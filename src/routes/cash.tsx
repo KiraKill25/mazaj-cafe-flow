@@ -28,6 +28,11 @@ const download = (name: string, text: string, type: string) => {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 const stamp = () => new Date().toISOString().slice(0, 10);
+const BK = {
+  en: { title: "Save a backup now?", body: "The shift is closed. Save a copy of all your data to this PC.", yes: "Save backup", no: "Not now" },
+  fr: { title: "Sauvegarder maintenant ?", body: "La caisse est fermée. Enregistrez une copie de toutes vos données sur ce PC.", yes: "Sauvegarder", no: "Plus tard" },
+  ar: { title: "حفظ نسخة احتياطية الآن؟", body: "تم إغلاق الصندوق. احفظ نسخة من جميع بياناتك على هذا الحاسوب.", yes: "حفظ النسخة", no: "ليس الآن" },
+};
 
 function Cash() {
   const pos = usePos();
@@ -36,6 +41,7 @@ function Cash() {
   const sess = openSession(pos);
   const [counted, setCounted] = useState("");
   const [printed, setPrinted] = useState<Session | null>(null);
+  const [askBackup, setAskBackup] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const cur = pos.currency;
 
@@ -53,6 +59,7 @@ function Cash() {
     setPos((s) => ({ ...s, sessions: s.sessions.map((x) => (x.id === sess.id ? closed : x)) }));
     setCounted("");
     setPrinted(closed);
+    setTimeout(() => setAskBackup(true), 800);
   };
 
   const exportAll = () => {
@@ -181,6 +188,17 @@ function Cash() {
           </div>
         );
       })()}
+      {askBackup && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/50 p-4 print:hidden">
+          <div className="w-full max-w-sm space-y-4 rounded-3xl bg-card p-6 text-center shadow-xl">
+            <Download className="mx-auto h-10 w-10 text-primary" />
+            <h2 className="font-display text-xl font-black">{BK[pos.lang].title}</h2>
+            <p className="text-sm text-muted-foreground">{BK[pos.lang].body}</p>
+            <button onClick={() => { exportAll(); setAskBackup(false); }} className="h-14 w-full rounded-xl bg-primary text-lg font-extrabold text-primary-foreground">{BK[pos.lang].yes}</button>
+            <button onClick={() => setAskBackup(false)} className="h-12 w-full rounded-xl bg-muted font-bold">{BK[pos.lang].no}</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
