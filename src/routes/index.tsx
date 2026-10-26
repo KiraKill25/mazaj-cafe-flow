@@ -7,6 +7,7 @@ import { LangBar, useDir } from "@/components/LangBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Splash } from "@/components/Splash";
 import { newPin, useWaiterLink, type WaiterOrder } from "@/lib/waiterLink";
+import { QRCodeSVG } from "qrcode.react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -45,6 +46,9 @@ function Register() {
   const [fromWaiter, setFromWaiter] = useState<WaiterOrder | null>(null);
   const [showWaiter, setShowWaiter] = useState(false);
   const link = useWaiterLink(pos);
+  const [waiterHost, setWaiterHost] = useState("");
+  useEffect(() => { setWaiterHost(localStorage.getItem("mazaj-waiter-host") || window.location.origin); }, []);
+  const waiterUrl = waiterHost.trim() ? `${waiterHost.trim().replace(/\/+$/, "").replace(/\/waiter$/, "")}/waiter` : "";
   const W = {
     en: { title: "Waiter orders", none: "No waiter orders waiting", pin: "Waiter PIN", addr: "Waiters open on their phone (same Wi-Fi):", hint: "Replace the address with this PC's Wi-Fi IP (Windows: ipconfig → IPv4).", cashOut: "Cash out", remove: "Remove", table: "Table", newPin: "New PIN", offline: "Link offline", online: "Link active", confirmRemove: "Remove this waiter order?" },
     fr: { title: "Commandes serveurs", none: "Aucune commande serveur en attente", pin: "PIN serveurs", addr: "Les serveurs ouvrent sur leur téléphone (même Wi-Fi) :", hint: "Remplacez l'adresse par l'IP Wi-Fi de ce PC (Windows : ipconfig → IPv4).", cashOut: "Encaisser", remove: "Retirer", table: "Table", newPin: "Nouveau PIN", offline: "Liaison hors ligne", online: "Liaison active", confirmRemove: "Retirer cette commande serveur ?" },
@@ -272,7 +276,14 @@ function Register() {
                 <span className="font-bold">{W.pin}: <span className="font-display text-2xl font-black tracking-widest">{pos.waiterPin}</span></span>
                 <button onClick={() => setPos((s) => ({ ...s, waiterPin: newPin() }))} className="h-9 rounded-lg bg-background px-2 text-xs font-bold">{W.newPin}</button>
               </div>
-              <p>{W.addr} <b dir="ltr" className="select-all">{typeof window !== "undefined" ? window.location.origin : ""}/waiter</b></p>
+              <p>{W.addr}</p>
+              <input dir="ltr" value={waiterHost} onChange={(e) => { setWaiterHost(e.target.value); localStorage.setItem("mazaj-waiter-host", e.target.value); }} placeholder="http://192.168.1.10:8080" className="h-11 w-full rounded-lg border border-input bg-background px-3 font-mono text-sm" />
+              {waiterUrl && (
+                <div className="flex flex-col items-center gap-1 rounded-lg bg-background p-3">
+                  <QRCodeSVG value={waiterUrl} size={180} />
+                  <b dir="ltr" className="select-all text-xs">{waiterUrl}</b>
+                </div>
+              )}
               <p className="text-muted-foreground">{W.hint}</p>
             </div>
             <div className="flex-1 space-y-2 overflow-y-auto p-4">
