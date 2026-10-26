@@ -1,8 +1,9 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "mazaj-cafe-flow",
   "private": true,
   "sideEffects": false,
   "type": "module",
+  "main": "electron.cjs",
   "scripts": {
     "dev": "vite dev --host",
     "build": "vite build",
@@ -11,7 +12,28 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "electron:build": "npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "com.mazaj.coffeeshop",
+    "productName": "MAZAJ Coffee Shop",
+    "asar": false,
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron.cjs"
+    ],
+    "extraResources": [
+      {
+        "from": ".output",
+        "to": ".output"
+      }
+    ],
+    "win": {
+      "target": ["nsis"]
+    }
   },
   "overrides": {
     "rolldown": "1.2.1"
@@ -80,6 +102,8 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",
