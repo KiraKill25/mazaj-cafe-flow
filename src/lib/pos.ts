@@ -13,6 +13,9 @@ export type Expense = { id: string; at: number; category: string; label: string;
 
 export type Session = { id: string; openedAt: number; float: number; closedAt?: number | undefined; counted?: number | undefined };
 
+/** An open dine-in table bill kept until final checkout. */
+export type Tab = { id: string; table: string; openedAt: number; lines: SaleLine[] };
+
 export type Item = {
   id: string;
   name: Record<Lang, string>;
@@ -37,6 +40,7 @@ export type PosState = {
   lang: Lang;
   waiterPin: string; // 4-digit PIN waiters type to send orders to this register
   linkKey: string; // secret id of this register on the local Wi-Fi relay
+  tabs: Tab[];
 };
 
 const SEED_IMAGES: Record<string, string> = { burger, fries, wrap, soda };
@@ -77,6 +81,7 @@ const seed = (): PosState => ({
   lang: "fr",
   waiterPin: "",
   linkKey: "",
+  tabs: [],
 });
 
 const KEY = "pos-state-v1";
@@ -203,3 +208,23 @@ export const CX = {
   fr: { openTitle: "Ouverture de caisse", float: "Fond de caisse", open: "Ouvrir la caisse", cashDesk: "Caisse", opened: "Ouverte le", cashSales: "Ventes espèces", cardSales: "Ventes carte", cashOut: "Sorties de caisse", expected: "Attendu en caisse", counted: "Espèces comptées", diff: "Écart", closeReg: "Clôturer & imprimer", sessions: "Jours précédents", noOpen: "Caisse fermée", cancelOrder: "Annuler la commande", cancelled: "Annulée", reason: "Motif d'annulation (facultatif)", fromDrawer: "Payé en espèces depuis la caisse", backup: "Sauvegarde", exportAll: "Télécharger la sauvegarde complète", restore: "Restaurer une sauvegarde", restoreOk: "Sauvegarde restaurée.", restoreBad: "Ce fichier n'est pas une sauvegarde MAZAJ valide.", restoreConfirm: "Remplacer TOUTES les données actuelles par cette sauvegarde ?", csvSales: "Ventes (CSV Excel)", csvExp: "Charges (CSV Excel)", csvMenu: "Menu (CSV Excel)", lastBackup: "Dernière sauvegarde", never: "Jamais", remind: "Aucune sauvegarde depuis plus de 7 jours — téléchargez-en une.", zReport: "CLÔTURE DE CAISSE", gained: "Recette du jour" },
   ar: { openTitle: "فتح الصندوق", float: "المبلغ الافتتاحي في الدرج", open: "فتح الصندوق", cashDesk: "الصندوق", opened: "فُتح في", cashSales: "مبيعات نقدية", cardSales: "مبيعات بالبطاقة", cashOut: "مصاريف من الصندوق", expected: "المتوقع في الدرج", counted: "النقد المعدود", diff: "الفرق", closeReg: "إغلاق الصندوق وطباعة", sessions: "الأيام السابقة", noOpen: "الصندوق مغلق", cancelOrder: "إلغاء الطلب", cancelled: "ملغى", reason: "سبب الإلغاء (اختياري)", fromDrawer: "مدفوع نقداً من الصندوق", backup: "النسخ الاحتياطي", exportAll: "تنزيل نسخة احتياطية كاملة", restore: "استعادة نسخة احتياطية", restoreOk: "تمت الاستعادة.", restoreBad: "هذا الملف ليس نسخة احتياطية صالحة.", restoreConfirm: "استبدال كل البيانات الحالية بهذه النسخة؟", csvSales: "المبيعات (CSV)", csvExp: "المصاريف (CSV)", csvMenu: "القائمة (CSV)", lastBackup: "آخر نسخة", never: "أبداً", remind: "لا توجد نسخة احتياطية منذ أكثر من 7 أيام — نزّل واحدة الآن.", zReport: "إغلاق الصندوق", gained: "إيراد اليوم" },
 };
+
+/** Adds `extra` quantities into `base`, grouping by item id. */
+export function mergeLines(base: SaleLine[], extra: SaleLine[]): SaleLine[] {
+  const out = base.map((l) => ({ ...l }));
+  for (const e of extra) {
+    const f = out.find((l) => l.id === e.id);
+    if (f) f.qty += e.qty;
+    else out.push({ ...e });
+  }
+  return out.filter((l) => l.qty > 0);
+}
+export const linesTotal = (lines: SaleLine[]) => lines.reduce((s, l) => s + l.price * l.qty, 0);
+
+/** Menu search: case/accent-insensitive match on any of the three language names. */
+const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+export function matchItem(item: { name: Record<Lang, string> }, q: string) {
+  const n = norm(q);
+  if (!n) return true;
+  return (["en", "fr", "ar"] as const).some((l) => norm(item.name[l] ?? "").includes(n));
+}
