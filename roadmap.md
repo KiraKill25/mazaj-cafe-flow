@@ -1,0 +1,4 @@
+- [x] Full backup/restore + CSV exports
+- [x] Cash drawer opening/closing with Z-report
+- [x] Daily order number reset + order cancellation
+- [x] Locale-aware dates
