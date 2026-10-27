@@ -1,8 +1,5 @@
 import { useSyncExternalStore } from "react";
-import burger from "@/assets/burger.jpg";
-import fries from "@/assets/fries.jpg";
-import wrap from "@/assets/wrap.jpg";
-import soda from "@/assets/soda.jpg";
+import { MENU_IMAGES, MENU_ITEMS, MENU_CATEGORIES } from "./menu";
 
 export type Lang = "en" | "fr" | "ar";
 export type Category = { id: string; name: Record<Lang, string> };
@@ -43,26 +40,13 @@ export type PosState = {
   tabs: Tab[];
 };
 
-const SEED_IMAGES: Record<string, string> = { burger, fries, wrap, soda };
+const SEED_IMAGES: Record<string, string> = MENU_IMAGES;
 export const resolveImage = (img: string) =>
   img.startsWith("seed:") ? SEED_IMAGES[img.slice(5)] ?? "" : img;
 
 const seed = (): PosState => ({
-  items: [
-    { id: "1", name: { en: "Cheeseburger", fr: "Cheeseburger", ar: "تشيز برغر" }, price: 6.5, category: "burgers", image: "seed:burger", outOfStock: false },
-    { id: "2", name: { en: "Double Burger", fr: "Double Burger", ar: "برغر مزدوج" }, price: 8.9, category: "burgers", image: "seed:burger", outOfStock: false },
-    { id: "3", name: { en: "Chicken Wrap", fr: "Wrap Poulet", ar: "راب دجاج" }, price: 6, category: "wraps", image: "seed:wrap", outOfStock: false },
-    { id: "4", name: { en: "Fries", fr: "Frites", ar: "بطاطس مقلية" }, price: 2.5, category: "sides", image: "seed:fries", outOfStock: false },
-    { id: "5", name: { en: "Large Fries", fr: "Grandes Frites", ar: "بطاطس كبيرة" }, price: 3.5, category: "sides", image: "seed:fries", outOfStock: false },
-    { id: "6", name: { en: "Cola", fr: "Cola", ar: "كولا" }, price: 2, category: "drinks", image: "seed:soda", outOfStock: false },
-  ],
-  categories: [
-    { id: "burgers", name: { en: "Burgers", fr: "Burgers", ar: "برغر" } },
-    { id: "wraps", name: { en: "Wraps", fr: "Wraps", ar: "راب" } },
-    { id: "sides", name: { en: "Sides", fr: "Accompagnements", ar: "مقبلات" } },
-    { id: "drinks", name: { en: "Drinks", fr: "Boissons", ar: "مشروبات" } },
-    { id: "desserts", name: { en: "Desserts", fr: "Desserts", ar: "حلويات" } },
-  ],
+  items: MENU_ITEMS.map((i) => ({ ...i, name: { ...i.name } })),
+  categories: MENU_CATEGORIES.map((c) => ({ ...c, name: { ...c.name } })),
   sales: [],
   expenses: [],
   expenseCategories: [
@@ -77,14 +61,14 @@ const seed = (): PosState => ({
   sessions: [],
   lastBackup: 0,
   pin: "1234",
-  currency: "€",
+  currency: "DA",
   lang: "fr",
   waiterPin: "",
   linkKey: "",
   tabs: [],
 });
 
-const KEY = "pos-state-v1";
+const KEY = "pos-state-v2"; // v2: real Mazaj menu (v1 held test data)
 let state: PosState | null = null;
 const listeners = new Set<() => void>();
 
