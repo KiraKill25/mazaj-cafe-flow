@@ -5,7 +5,10 @@ const assets = import.meta.glob("../assets/menu/*.asset.json", { eager: true, im
 
 /** Menu photo URL by key (file name without extension), e.g. "espresso". */
 export const MENU_IMAGES: Record<string, string> = Object.fromEntries(
-  Object.entries(assets).map(([p, a]) => [p.split("/").pop()!.replace(".jpg.asset.json", ""), ""]).map(([k]) => [k, `/menu/${k}.jpg`]),
+  Object.keys(assets).map((p) => {
+    const k = p.split("/").pop()!.replace(".jpg.asset.json", "");
+    return [k, `/menu/${k}.jpg`];
+  }),
 );
 
 const N = (fr: string, en: string, ar: string): Record<Lang, string> => ({ fr, en, ar });
