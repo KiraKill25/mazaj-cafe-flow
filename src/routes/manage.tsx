@@ -5,7 +5,7 @@ import { PinGate } from "@/components/PinGate";
 import { LangBar, useDir } from "@/components/LangBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { CX, TX, usePos } from "@/lib/pos";
-import logoAsset from "@/assets/mazaj-logo.jpg.asset.json";
+const logoAsset = { url: "/mazaj-logo.jpg" };
 
 export const Route = createFileRoute("/manage")({
   ssr: false,

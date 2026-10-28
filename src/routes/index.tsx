@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import logoAsset from "@/assets/mazaj-logo.jpg.asset.json";
+const logoAsset = { url: "/mazaj-logo.jpg" };
 import { Minus, Plus, Trash2, Banknote, CreditCard, ShieldCheck, ReceiptText, Printer, X, Smartphone, Search, Utensils, ChefHat, Clock } from "lucide-react";
 import { T, TX, CX, currentOrderNum, dayKey, fmtDateTime, openSession, fmtOrder, money, resolveImage, matchItem, mergeLines, linesTotal, type SaleLine, type Tab, setPos, usePos, type Item, type Lang, type Sale } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";

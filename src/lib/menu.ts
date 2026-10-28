@@ -1,10 +1,11 @@
 import type { Category, Item, Lang } from "./pos";
 
-const assets = import.meta.glob<{ url: string }>("../assets/menu/*.asset.json", { eager: true, import: "default" });
+// Photos are bundled in public/menu so the app works fully offline (desktop / Inno Setup build).
+const assets = import.meta.glob("../assets/menu/*.asset.json", { eager: true, import: "default" });
 
 /** Menu photo URL by key (file name without extension), e.g. "espresso". */
 export const MENU_IMAGES: Record<string, string> = Object.fromEntries(
-  Object.entries(assets).map(([p, a]) => [p.split("/").pop()!.replace(".jpg.asset.json", ""), a.url]),
+  Object.entries(assets).map(([p, a]) => [p.split("/").pop()!.replace(".jpg.asset.json", ""), ""]).map(([k]) => [k, `/menu/${k}.jpg`]),
 );
 
 const N = (fr: string, en: string, ar: string): Record<Lang, string> => ({ fr, en, ar });
