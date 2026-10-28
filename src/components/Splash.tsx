@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import logoAsset from "@/assets/mazaj-logo.jpg.asset.json";
+const logoAsset = { url: "/mazaj-logo.jpg" };
 import { usePos } from "@/lib/pos";
 
 // Shown once each time the app is opened (not on every page change).

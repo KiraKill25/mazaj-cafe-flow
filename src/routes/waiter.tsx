@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Minus, Plus, Send, Printer, LogOut, ShoppingBag, X, Search } from "lucide-react";
-import logoAsset from "@/assets/mazaj-logo.jpg.asset.json";
+const logoAsset = { url: "/mazaj-logo.jpg" };
 import { T, fmtDateTime, matchItem, money, usePos, type Category, type Item } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
