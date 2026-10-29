@@ -39,3 +39,11 @@ Double-click `Start-Mazaj.bat`. It starts the server and opens the register in C
 - Set your thermal printer as the default printer.
 - Cash drawer: in the printer driver Properties → Device Settings / Cash Drawer, set "Open drawer before printing".
 - Close all other Chrome windows the first time if printing still shows a dialog.
+
+## Windows installer (any PC, fully offline)
+Build once on your PC (needs Node.js LTS and [Inno Setup](https://jrsoftware.org/isdl.php)):
+1. Download `node.exe` (https://nodejs.org/dist/latest-v22.x/win-x64/node.exe) into the `windows` folder.
+2. Double-click `windows\build-desktop.bat`.
+3. Right-click `windows\Mazaj-Setup.iss` → **Compile**. The installer appears in `windows\Output\`.
+
+Copy `Mazaj-POS-Setup-v1.0.0.exe` to any Windows PC (no Node.js needed). It adds a desktop shortcut, opens the register with instant printing, opens the firewall for waiter phones on private Wi-Fi, and includes all menu photos and fonts so nothing needs internet.

@@ -11,3 +11,5 @@
 
 - All app data lives in one localStorage-backed store in src/lib/pos.ts; backups export/import that whole state as JSON — keeps restore lossless.
 - Format dates only via fmtDate/fmtDateTime in pos.ts — dates must follow the active language.
+- Menu photos, logo and fonts are bundled locally (public/, @fontsource) — the Windows installer must work with no internet.
+- Desktop build: `MAZAJ_DESKTOP=1 vite build` switches nitro to node-server; windows/ holds the launcher and Inno Setup script.
