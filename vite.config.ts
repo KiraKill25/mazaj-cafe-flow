@@ -7,7 +7,7 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 // MAZAJ_DESKTOP=1 builds a plain Node server (.output/server/index.mjs) for the Windows installer.
-const desktop = process.env.MAZAJ_DESKTOP === "1";
+const desktop = process.env["MAZAJ_DESKTOP"] === "1";
 
 export default defineConfig({
   tanstackStart: {
