@@ -1,3 +1,4 @@
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { ArrowLeft, Download, Upload } from "lucide-react";
@@ -91,7 +92,7 @@ function Settings({ lock }: { lock: () => void }) {
     <div className="min-h-dvh bg-background text-foreground">
       <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
-          <Link to="/manage" aria-label={t.back} className="grid h-12 w-12 place-items-center rounded-xl bg-muted"><ArrowLeft className="rtl:rotate-180" /></Link>
+          <Link to="/manage" aria-label={t.back} className="grid h-12 w-12 place-items-center rounded-xl bg-muted"><ArrowLeft className="rtl:rotate-180" /></Link><ThemeToggle />
           <h1 className="font-display text-xl font-black">{SETTINGS_LABEL[pos.lang]}</h1>
         </div>
         <LangBar />

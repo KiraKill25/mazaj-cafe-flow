@@ -7,9 +7,9 @@ export function applyStoredTheme() {
 
 export function ThemeToggle() {
   const [dark, setDark] = useState(false);
-  useEffect(() => setDark(document.documentElement.classList.contains("dark")), []);
+  useEffect(() => setDark(localStorage.getItem("mazaj-theme") === "dark"), []);
   const toggle = () => {
-    const next = !dark;
+    const next = !document.documentElement.classList.contains("dark");
     setDark(next);
     localStorage.setItem("mazaj-theme", next ? "dark" : "light");
     document.documentElement.classList.toggle("dark", next);
