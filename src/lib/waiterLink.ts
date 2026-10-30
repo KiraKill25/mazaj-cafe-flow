@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { resolveImage, setPos, type PosState } from "@/lib/pos";
+import { appendLog, resolveImage, setPos, type PosState, type WaiterLogEntry } from "@/lib/pos";
 import type { WaiterOrder } from "@/routes/api/public/waiter";
 
 export type { WaiterOrder };
@@ -32,7 +32,7 @@ function chime() {
 export function useWaiterLink(pos: PosState) {
   const [orders, setOrders] = useState<WaiterOrder[]>([]);
   const [online, setOnline] = useState(false);
-  const seen = useRef<Set<string> | null>(null);
+  const seen = useRef<Map<string, WaiterOrder> | null>(null);
 
   useEffect(() => {
     if (!pos.linkKey || !pos.waiterPin) setPos((s) => ({ ...s, linkKey: s.linkKey || crypto.randomUUID(), waiterPin: s.waiterPin || newPin() }));
@@ -58,9 +58,20 @@ export function useWaiterLink(pos: PosState) {
       try {
         const r = await relay<{ orders: WaiterOrder[] }>({ action: "pull", key: pos.linkKey });
         if (stop || !r.orders) return;
-        const ids = new Set(r.orders.map((o) => o.id));
-        if (seen.current && r.orders.some((o) => !seen.current!.has(o.id))) chime();
-        seen.current = ids;
+        const prev = seen.current;
+        if (prev) {
+          const entries = diffOrders(prev, r.orders);
+          if (entries.some((e) => e.kind !== "modified")) chime();
+          if (entries.length) setPos((s) => ({ ...s, waiterLog: appendLog(s.waiterLog, ...entries) }));
+        } else {
+          // first poll this session: log orders the register has never seen
+          setPos((s) => {
+            const known = new Set((s.waiterLog ?? []).map((e) => e.orderId));
+            const fresh = r.orders.filter((o) => !known.has(o.id));
+            return fresh.length ? { ...s, waiterLog: appendLog(s.waiterLog, ...diffOrders(new Map(), fresh)) } : s;
+          });
+        }
+        seen.current = new Map(r.orders.map((o) => [o.id, o]));
         setOrders(r.orders);
       } catch { /* offline */ }
     };
@@ -73,5 +84,35 @@ export function useWaiterLink(pos: PosState) {
     setOrders((o) => o.filter((x) => x.id !== id));
     await relay({ action: "done", key: pos.linkKey, id }).catch(() => undefined);
   };
-  return { orders, online, done };
+  const log = (o: WaiterOrder, kind: WaiterLogEntry["kind"], detail?: string) =>
+    setPos((s) => ({ ...s, waiterLog: appendLog(s.waiterLog, { at: Date.now(), kind, orderId: o.id, table: o.table, total: o.total, detail }) }));
+  /** Register approves or rejects a waiter's cancellation request. */
+  const decide = async (o: WaiterOrder, approve: boolean) => {
+    setOrders((list) => (approve ? list.filter((x) => x.id !== o.id) : list.map((x) => (x.id === o.id ? { ...x, cancelRequest: undefined } : x))));
+    if (seen.current) { if (approve) seen.current.delete(o.id); else seen.current.set(o.id, { ...o, cancelRequest: undefined }); }
+    log(o, approve ? "cancelApproved" : "cancelRejected", o.cancelRequest?.reason);
+    await relay({ action: "decide", key: pos.linkKey, id: o.id, approve }).catch(() => undefined);
+  };
+  const remove = async (o: WaiterOrder) => { log(o, "removed"); await done(o.id); };
+  return { orders, online, done, decide, remove };
+}
+
+const summary = (o: WaiterOrder) => o.lines.map((l) => `${l.qty}× ${l.name.fr}`).join(", ");
+
+/** Compares two polls of waiter orders and returns the log entries for what changed. */
+export function diffOrders(prev: Map<string, WaiterOrder>, next: WaiterOrder[]): WaiterLogEntry[] {
+  const out: WaiterLogEntry[] = [];
+  for (const o of next) {
+    const p = prev.get(o.id);
+    const base = { orderId: o.id, table: o.table, total: o.total };
+    if (!p) {
+      out.push({ ...base, at: o.at, kind: "created", detail: summary(o) });
+      if (o.modifiedAt) out.push({ ...base, at: o.modifiedAt, kind: "modified", detail: summary(o) });
+      if (o.cancelRequest) out.push({ ...base, at: o.cancelRequest.at, kind: "cancelRequested", detail: o.cancelRequest.reason });
+      continue;
+    }
+    if (o.modifiedAt && o.modifiedAt !== p.modifiedAt) out.push({ ...base, at: o.modifiedAt, kind: "modified", detail: summary(o) });
+    if (o.cancelRequest && o.cancelRequest.at !== p.cancelRequest?.at) out.push({ ...base, at: o.cancelRequest.at, kind: "cancelRequested", detail: o.cancelRequest.reason });
+  }
+  return out;
 }

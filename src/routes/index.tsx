@@ -6,6 +6,7 @@ import { T, TX, CX, currentOrderNum, dayKey, fmtDateTime, openSession, fmtOrder,
 import { LangBar, useDir } from "@/components/LangBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Splash } from "@/components/Splash";
+import { pickFortune, THANKS } from "@/lib/fortunes";
 import { newPin, useWaiterLink, type WaiterOrder } from "@/lib/waiterLink";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -103,12 +104,23 @@ function Register() {
   const minsSince = (t0: number) => Math.max(0, Math.floor(((now || Date.now()) - t0) / 60000));
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(id); }, []);
   const [waiterHost, setWaiterHost] = useState("");
-  useEffect(() => { setWaiterHost(localStorage.getItem("mazaj-waiter-host") || window.location.origin); }, []);
+  useEffect(() => {
+    setWaiterHost(localStorage.getItem("mazaj-waiter-host") || window.location.origin);
+    // Auto-detect this PC's Wi-Fi address so phones can scan the QR code without typing anything.
+    fetch("/api/public/network").then((r) => r.json()).then((d: { ips?: string[]; port?: string }) => {
+      const ip = d.ips?.[0];
+      if (!ip) return;
+      const host = `http://${ip}${d.port ? `:${d.port}` : ""}`;
+      setWaiterHost(host);
+      localStorage.setItem("mazaj-waiter-host", host);
+    }).catch(() => undefined);
+  }, []);
+  const [showLog, setShowLog] = useState(false);
   const waiterUrl = waiterHost.trim() ? `${waiterHost.trim().replace(/\/+$/, "").replace(/\/waiter$/, "")}/waiter` : "";
   const W = {
-    en: { title: "Waiter orders", none: "No waiter orders waiting", pin: "Waiter PIN", addr: "Waiters open on their phone (same Wi-Fi):", hint: "Replace the address with this PC's Wi-Fi IP (Windows: ipconfig → IPv4).", cashOut: "Cash out", remove: "Remove", table: "Table", newPin: "New PIN", offline: "Link offline", online: "Link active", confirmRemove: "Remove this waiter order?" },
-    fr: { title: "Commandes serveurs", none: "Aucune commande serveur en attente", pin: "PIN serveurs", addr: "Les serveurs ouvrent sur leur téléphone (même Wi-Fi) :", hint: "Remplacez l'adresse par l'IP Wi-Fi de ce PC (Windows : ipconfig → IPv4).", cashOut: "Encaisser", remove: "Retirer", table: "Table", newPin: "Nouveau PIN", offline: "Liaison hors ligne", online: "Liaison active", confirmRemove: "Retirer cette commande serveur ?" },
-    ar: { title: "طلبات النُدُل", none: "لا توجد طلبات في الانتظار", pin: "رمز النُدُل", addr: "يفتح النُدُل على هواتفهم (نفس الواي فاي):", hint: "استبدل العنوان بعنوان IP لهذا الحاسوب (ويندوز: ipconfig ← IPv4).", cashOut: "تحصيل", remove: "حذف", table: "طاولة", newPin: "رمز جديد", offline: "الربط غير متصل", online: "الربط نشط", confirmRemove: "حذف طلب النادل هذا؟" },
+    en: { title: "Waiter orders", none: "No waiter orders waiting", pin: "Waiter PIN", addr: "Waiters open on their phone (same Wi-Fi):", hint: "Scan with the phone camera (same Wi-Fi). The PC address is detected automatically.", cashOut: "Cash out", remove: "Remove", table: "Table", newPin: "New PIN", offline: "Link offline", online: "Link active", confirmRemove: "Remove this waiter order?", approve: "Approve cancel", reject: "Reject", cancelReq: "Cancel requested", modified: "Modified", log: "Activity log", noLog: "No activity yet", reason: "Reason", k_created: "Order sent", k_modified: "Order modified", k_cancelRequested: "Cancel requested", k_cancelApproved: "Cancel approved", k_cancelRejected: "Cancel rejected", k_removed: "Removed at register", alertCancel: "Waiter asks to cancel" },
+    fr: { title: "Commandes serveurs", none: "Aucune commande serveur en attente", pin: "PIN serveurs", addr: "Les serveurs ouvrent sur leur téléphone (même Wi-Fi) :", hint: "Scannez avec l'appareil photo du téléphone (même Wi-Fi). L'adresse du PC est détectée automatiquement.", cashOut: "Encaisser", remove: "Retirer", table: "Table", newPin: "Nouveau PIN", offline: "Liaison hors ligne", online: "Liaison active", confirmRemove: "Retirer cette commande serveur ?", approve: "Approuver l'annulation", reject: "Refuser", cancelReq: "Annulation demandée", modified: "Modifiée", log: "Journal d'activité", noLog: "Aucune activité", reason: "Motif", k_created: "Commande envoyée", k_modified: "Commande modifiée", k_cancelRequested: "Annulation demandée", k_cancelApproved: "Annulation approuvée", k_cancelRejected: "Annulation refusée", k_removed: "Retirée à la caisse", alertCancel: "Le serveur demande d'annuler" },
+    ar: { title: "طلبات النُدُل", none: "لا توجد طلبات في الانتظار", pin: "رمز النُدُل", addr: "يفتح النُدُل على هواتفهم (نفس الواي فاي):", hint: "امسح بكاميرا الهاتف (نفس الواي فاي). يتم اكتشاف عنوان الحاسوب تلقائياً.", cashOut: "تحصيل", remove: "حذف", table: "طاولة", newPin: "رمز جديد", offline: "الربط غير متصل", online: "الربط نشط", confirmRemove: "حذف طلب النادل هذا؟", approve: "قبول الإلغاء", reject: "رفض", cancelReq: "طلب إلغاء", modified: "معدّل", log: "سجل النشاط", noLog: "لا يوجد نشاط", reason: "السبب", k_created: "تم إرسال الطلب", k_modified: "تم تعديل الطلب", k_cancelRequested: "طلب إلغاء", k_cancelApproved: "تمت الموافقة على الإلغاء", k_cancelRejected: "تم رفض الإلغاء", k_removed: "حُذف من الصندوق", alertCancel: "النادل يطلب الإلغاء" },
   }[pos.lang];
   const loadWaiter = (o: WaiterOrder) => {
     setCart(o.lines.map((l) => ({ qty: l.qty, item: pos.items.find((i) => i.id === l.id) ?? ({ id: l.id, name: l.name, price: l.price, category: "", image: "", outOfStock: false } as Item) })));
@@ -204,6 +216,13 @@ function Register() {
           <button onClick={() => setAlertOrder(null)} aria-label="Close" className="grid h-11 w-11 place-items-center rounded-lg bg-background/20"><X size={18} /></button>
         </div>
       )}
+      {link.orders.filter((o) => o.cancelRequest).map((o) => (
+        <div key={o.id} role="alert" className="flex flex-wrap items-center gap-2 bg-destructive px-4 py-3 text-destructive-foreground">
+          <span className="min-w-0 flex-1 text-lg font-extrabold">⚠ {W.alertCancel} · {o.table ? `${W.table} ${o.table}` : t.takeaway} · {money(o.total, pos.currency)}{o.cancelRequest?.reason ? ` — “${o.cancelRequest.reason}”` : ""}</span>
+          <button onClick={() => void link.decide(o, true)} className="h-11 rounded-lg bg-background px-3 font-bold text-foreground">{W.approve}</button>
+          <button onClick={() => void link.decide(o, false)} className="h-11 rounded-lg bg-background/20 px-3 font-bold">{W.reject}</button>
+        </div>
+      ))}
       {now > 0 && now - (pos.lastBackup ?? 0) > 7 * 864e5 && (
         <Link to="/settings" className="bg-accent px-4 py-2 text-center text-sm font-bold text-accent-foreground">{c.remind}</Link>
       )}
@@ -358,6 +377,71 @@ function Register() {
               <h2 className="font-display text-xl font-extrabold">{W.title} ({link.orders.length})</h2>
               <button onClick={() => setShowWaiter(false)} aria-label="Close" className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted"><X /></button>
             </div>
+            <div className="space-y-2 border-b border-border bg-muted/50 p-3 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${link.online ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}`}>{link.online ? W.online : W.offline}</span>
+                <span className="font-bold">{W.pin}: <span className="font-display text-xl font-black tracking-widest">{pos.waiterPin}</span></span>
+                <button onClick={() => setPos((s) => ({ ...s, waiterPin: newPin() }))} className="h-9 rounded-lg bg-background px-2 text-xs font-bold">{W.newPin}</button>
+              </div>
+              <div className="flex items-start gap-3">
+                {waiterUrl && <div className="shrink-0 rounded-lg bg-background p-1.5"><QRCodeSVG value={waiterUrl} size={96} /></div>}
+                <div className="min-w-0 flex-1 space-y-1">
+                  <p className="text-xs font-semibold">{W.addr}</p>
+                  <input dir="ltr" value={waiterHost} onChange={(e) => { setWaiterHost(e.target.value); localStorage.setItem("mazaj-waiter-host", e.target.value); }} placeholder="http://192.168.1.10:8080" className="h-9 w-full rounded-lg border border-input bg-background px-2 font-mono text-xs" />
+                  {waiterUrl && <b dir="ltr" className="block select-all truncate text-xs">{waiterUrl}</b>}
+                  <p className="text-xs leading-snug text-muted-foreground">{W.hint}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowLog((v) => !v)} className="h-9 w-full rounded-lg bg-background text-xs font-bold">{W.log} ({(pos.waiterLog ?? []).length})</button>
+            </div>
+            {showLog && (
+              <div className="max-h-[40%] space-y-1 overflow-y-auto border-b border-border p-3 text-sm">
+                {!(pos.waiterLog ?? []).length && <p className="text-center text-muted-foreground">{W.noLog}</p>}
+                {[...(pos.waiterLog ?? [])].reverse().map((e, i) => (
+                  <div key={i} className={`rounded-lg px-2 py-1 ${e.kind === "cancelApproved" || e.kind === "cancelRequested" ? "bg-destructive/10" : "bg-muted"}`}>
+                    <div className="flex flex-wrap gap-x-2"><b>{W[`k_${e.kind}`]}</b><span>{e.table ? `${W.table} ${e.table}` : t.takeaway}</span><span className="ms-auto text-xs text-muted-foreground">{fmtDateTime(e.at, pos.lang)}</span></div>
+                    <div className="text-xs text-muted-foreground">{money(e.total, pos.currency)}{e.detail ? ` · ${e.detail}` : ""}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex-1 space-y-2 overflow-y-auto p-4">
+              {todays.length === 0 && <p className="py-10 text-center text-muted-foreground">{L.none}</p>}
+              {todays.map((s) => (
+                <div key={s.at} className={`rounded-xl bg-muted p-3 ${s.cancelled ? "opacity-60" : ""}`}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-display text-lg font-extrabold">{fmtOrder(s.num)}</span>
+                    <span className="text-sm text-muted-foreground">{fmtDateTime(s.at, pos.lang)}</span>
+                    <span className="rounded-md bg-accent px-2 py-0.5 text-xs font-bold text-accent-foreground">{t[s.type]}</span>
+                    <span className="rounded-md bg-background px-2 py-0.5 text-xs font-bold">{t[s.method]}</span>
+                    {s.cancelled && <span className="rounded-md bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground">{c.cancelled}</span>}
+                    <span className={`ms-auto font-bold ${s.cancelled ? "line-through" : ""}`}>{money(s.total, pos.currency)}</span>
+                  </div>
+                  <ul className="mt-1 text-sm">
+                    {s.lines.map((l) => <li key={l.id}>{l.qty} × {l.name[pos.lang]}</li>)}
+                  </ul>
+                  {s.cancelled ? (
+                    <p className="pt-1 text-sm text-destructive">{c.cancelled} · {fmtDateTime(s.cancelled.at, pos.lang)}{s.cancelled.reason ? ` · ${s.cancelled.reason}` : ""}</p>
+                  ) : (
+                    <div className="mt-2 flex gap-2">
+                      <button onClick={() => reprint(s)} className="flex h-11 items-center gap-2 rounded-lg bg-background px-3 font-bold"><Printer className="h-4 w-4" />{L.reprint}</button>
+                      <button onClick={() => cancelSale(s)} className="h-11 rounded-lg bg-destructive/10 px-3 font-bold text-destructive">{c.cancelOrder}</button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showWaiter && (
+        <div className="fixed inset-0 z-40 flex justify-end bg-foreground/40" onClick={() => setShowWaiter(false)}>
+          <div className="flex h-full w-full max-w-md flex-col bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-border p-4">
+              <h2 className="font-display text-xl font-extrabold">{W.title} ({link.orders.length})</h2>
+              <button onClick={() => setShowWaiter(false)} aria-label="Close" className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted"><X /></button>
+            </div>
             <div className="space-y-2 border-b border-border bg-muted/50 p-4 text-sm">
               <div className="flex items-center justify-between gap-2">
                 <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${link.online ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}`}>{link.online ? W.online : W.offline}</span>
@@ -381,15 +465,25 @@ function Register() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-display text-lg font-extrabold">{o.table ? `${W.table} ${o.table}` : t.takeaway}</span>
                     <span className="text-sm text-muted-foreground">{fmtDateTime(o.at, pos.lang)}</span>
+                    {o.modifiedAt && <span className="rounded-md bg-accent px-2 py-0.5 text-xs font-bold text-accent-foreground">{W.modified}</span>}
                     <span className="ms-auto font-bold">{money(o.total, pos.currency)}</span>
                   </div>
+                  {o.cancelRequest && (
+                    <div className="mt-2 rounded-lg bg-destructive/10 p-2 text-destructive">
+                      <p className="text-sm font-bold">⚠ {W.cancelReq}{o.cancelRequest.reason ? ` — ${W.reason}: ${o.cancelRequest.reason}` : ""}</p>
+                      <div className="mt-2 flex gap-2">
+                        <button onClick={() => void link.decide(o, true)} className="h-11 flex-1 rounded-lg bg-destructive px-3 font-bold text-destructive-foreground">{W.approve}</button>
+                        <button onClick={() => void link.decide(o, false)} className="h-11 flex-1 rounded-lg bg-background px-3 font-bold text-foreground">{W.reject}</button>
+                      </div>
+                    </div>
+                  )}
                   <ul className="mt-1 text-sm">{o.lines.map((l) => <li key={l.id}>{l.qty} × {l.name[pos.lang]}</li>)}</ul>
                   {o.note && <p className="mt-1 text-sm italic">“{o.note}”</p>}
                   <div className="mt-2 flex gap-2">
                     <button onClick={() => loadWaiter(o)} className="h-11 flex-1 rounded-lg bg-success px-3 font-bold text-success-foreground">{W.cashOut}</button>
                     <button onClick={() => kitchenOnly(o.lines, o.table, o.note, o.type)} aria-label={P.kitchenBtn} title={P.kitchenBtn} className="flex h-11 items-center gap-1 rounded-lg bg-background px-3 font-bold"><ChefHat size={18} /></button>
                     {o.table && <button onClick={() => { addToTab(o.table!, o.lines); void link.done(o.id); }} title={P.addTab} className="flex h-11 items-center gap-1 rounded-lg bg-accent px-3 text-sm font-bold text-accent-foreground"><Utensils size={16} /><span className="hidden sm:inline">{P.addTab}</span></button>}
-                    <button onClick={() => { if (window.confirm(W.confirmRemove)) void link.done(o.id); }} className="h-11 rounded-lg bg-destructive/10 px-3 font-bold text-destructive">{W.remove}</button>
+                    <button onClick={() => { if (window.confirm(W.confirmRemove)) void link.remove(o); }} className="h-11 rounded-lg bg-destructive/10 px-3 font-bold text-destructive">{W.remove}</button>
                   </div>
                 </div>
               ))}
@@ -437,7 +531,7 @@ function PrintArea({ done, currency }: { done: Done; currency: string }) {
   return (
     <div id="print-area" dir={done.lang === "ar" ? "rtl" : "ltr"}>
       {done.receipt !== false && <div className="receipt">
-        <h2>MAZAJ COFFEE SHOP</h2>
+        <img className="logo" src="/receipt-logo.png" alt="MAZAJ Coffee Shop" />
         <p className="c">{fmtDateTime(done.at, done.lang)}</p>
         <p className="big c">{t.order} {fmtOrder(done.num)}</p>
         <p className="c">{t[done.type]}{done.table ? ` · Table ${done.table}` : ""}</p>
@@ -450,7 +544,8 @@ function PrintArea({ done, currency }: { done: Done; currency: string }) {
         <div className="row"><span>{t.paid} ({t[done.method]})</span><span>{money(done.received ?? done.total, currency)}</span></div>
         {done.method === "cash" && <div className="row"><span>{t.change}</span><span>{money((done.received ?? 0) - done.total, currency)}</span></div>}
         <hr />
-        <p className="c">{t.thanks}</p>
+        <p className="c fortune">“{pickFortune(done.lang, done.at + done.num)}”</p>
+        <p className="c">{THANKS[done.lang]}</p>
       </div>}
       {done.kitchen !== false && <div className="receipt kitchen" dir="ltr">
         <h2>CUISINE</h2>
