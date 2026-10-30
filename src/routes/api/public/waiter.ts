@@ -12,7 +12,7 @@ const Menu = z.object({
   currency: z.string().max(8),
 });
 
-export type WaiterOrder = { id: string; at: number; type: "dineIn" | "takeaway"; table?: string | undefined; note?: string | undefined; lines: z.infer<typeof Line>[]; total: number };
+export type WaiterOrder = { id: string; at: number; type: "dineIn" | "takeaway"; table?: string | undefined; note?: string | undefined; lines: z.infer<typeof Line>[]; total: number; modifiedAt?: number | undefined; cancelRequest?: { at: number; reason?: string | undefined } | undefined };
 type Relay = { key?: string; pin?: string; menu?: z.infer<typeof Menu>; menuAt: number; orders: WaiterOrder[] };
 const g = globalThis as unknown as { __mazajRelay?: Relay };
 const relay = (): Relay => (g.__mazajRelay ??= { menuAt: 0, orders: [] });
@@ -21,7 +21,11 @@ const Body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("sync"), key: z.string().min(16).max(64), pin: z.string().regex(/^\d{4}$/), menu: Menu.optional() }),
   z.object({ action: z.literal("pull"), key: z.string().min(16).max(64) }),
   z.object({ action: z.literal("done"), key: z.string().min(16).max(64), id: z.string().max(64) }),
+  z.object({ action: z.literal("decide"), key: z.string().min(16).max(64), id: z.string().max(64), approve: z.boolean() }),
   z.object({ action: z.literal("menu"), pin: z.string().max(8) }),
+  z.object({ action: z.literal("list"), pin: z.string().max(8) }),
+  z.object({ action: z.literal("update"), pin: z.string().max(8), id: z.string().max(64), table: z.string().trim().max(20).optional(), note: z.string().max(200).optional(), lines: z.array(Line).min(1).max(100) }),
+  z.object({ action: z.literal("cancelReq"), pin: z.string().max(8), id: z.string().max(64), reason: z.string().trim().max(200).optional() }),
   z.object({
     action: z.literal("order"),
     pin: z.string().max(8),
@@ -42,7 +46,7 @@ export const Route = createFileRoute("/api/public/waiter")({
         if (!parsed.success) return json({ error: "bad_request" }, 400);
         const b = parsed.data;
         const r = relay();
-        if (b.action === "sync" || b.action === "pull" || b.action === "done") {
+        if (b.action === "sync" || b.action === "pull" || b.action === "done" || b.action === "decide") {
           if (r.key && r.key !== b.key) return json({ error: "other_register" }, 403);
           r.key = b.key;
           if (b.action === "sync") {
@@ -51,11 +55,22 @@ export const Route = createFileRoute("/api/public/waiter")({
             return json({ ok: true });
           }
           if (b.action === "done") r.orders = r.orders.filter((o) => o.id !== b.id);
+          if (b.action === "decide") r.orders = b.approve ? r.orders.filter((o) => o.id !== b.id) : r.orders.map((o) => (o.id === b.id ? { ...o, cancelRequest: undefined } : o));
           return json({ orders: r.orders });
         }
         if (!r.pin) return json({ error: "register_offline" }, 503);
         if (b.pin !== r.pin) return json({ error: "wrong_pin" }, 401);
         if (b.action === "menu") return json({ menu: r.menu ?? null, menuAt: r.menuAt });
+        if (b.action === "list") return json({ orders: r.orders });
+        if (b.action === "update" || b.action === "cancelReq") {
+          const cur = r.orders.find((o) => o.id === b.id);
+          if (!cur) return json({ error: "not_found" }, 404);
+          const next: WaiterOrder = b.action === "update"
+            ? { ...cur, table: cur.type === "dineIn" ? b.table || cur.table : undefined, note: b.note?.trim() || undefined, lines: b.lines, total: Math.round(b.lines.reduce((s, l) => s + l.price * l.qty, 0) * 100) / 100, modifiedAt: Date.now() }
+            : { ...cur, cancelRequest: { at: Date.now(), reason: b.reason || undefined } };
+          r.orders = r.orders.map((o) => (o.id === b.id ? next : o));
+          return json({ order: next });
+        }
         if (b.type === "dineIn" && !b.table) return json({ error: "table_required" }, 400);
         const order: WaiterOrder = {
           id: crypto.randomUUID(),

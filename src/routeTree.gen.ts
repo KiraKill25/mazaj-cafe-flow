@@ -17,6 +17,7 @@ import { Route as ManageRouteImport } from './routes/manage'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as WaiterRouteImport } from './routes/waiter'
+import { Route as ApiPublicNetworkRouteImport } from './routes/api/public/network'
 import { Route as ApiPublicWaiterRouteImport } from './routes/api/public/waiter'
 
 const IndexRoute = IndexRouteImport.update({
@@ -59,6 +60,11 @@ const WaiterRoute = WaiterRouteImport.update({
   path: '/waiter',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicNetworkRoute = ApiPublicNetworkRouteImport.update({
+  id: '/api/public/network',
+  path: '/api/public/network',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicWaiterRoute = ApiPublicWaiterRouteImport.update({
   id: '/api/public/waiter',
   path: '/api/public/waiter',
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/waiter': typeof WaiterRoute
+  '/api/public/network': typeof ApiPublicNetworkRoute
   '/api/public/waiter': typeof ApiPublicWaiterRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/waiter': typeof WaiterRoute
+  '/api/public/network': typeof ApiPublicNetworkRoute
   '/api/public/waiter': typeof ApiPublicWaiterRoute
 }
 export interface FileRoutesById {
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/waiter': typeof WaiterRoute
+  '/api/public/network': typeof ApiPublicNetworkRoute
   '/api/public/waiter': typeof ApiPublicWaiterRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/waiter'
+    | '/api/public/network'
     | '/api/public/waiter'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/waiter'
+    | '/api/public/network'
     | '/api/public/waiter'
   id:
     | '__root__'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/waiter'
+    | '/api/public/network'
     | '/api/public/waiter'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +156,7 @@ export interface RootRouteChildren {
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
   WaiterRoute: typeof WaiterRoute
+  ApiPublicNetworkRoute: typeof ApiPublicNetworkRoute
   ApiPublicWaiterRoute: typeof ApiPublicWaiterRoute
 }
 
@@ -205,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WaiterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/network': {
+      id: '/api/public/network'
+      path: '/api/public/network'
+      fullPath: '/api/public/network'
+      preLoaderRoute: typeof ApiPublicNetworkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/waiter': {
       id: '/api/public/waiter'
       path: '/api/public/waiter'
@@ -224,6 +244,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
   WaiterRoute: WaiterRoute,
+  ApiPublicNetworkRoute: ApiPublicNetworkRoute,
   ApiPublicWaiterRoute: ApiPublicWaiterRoute,
 }
 export const routeTree = rootRouteImport
