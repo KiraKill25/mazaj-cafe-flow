@@ -166,6 +166,8 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   #print-area { display: block; position: absolute; inset: 0 auto auto 0; width: 72mm; color: #000; background: #fff; font-family: "Courier New", monospace; font-size: 12px; }
   #print-area .receipt { padding: 3mm 4mm; }
   #print-area .receipt + .kitchen { break-before: page; page-break-before: always; }
+  #print-area img.logo { display: block; width: 46mm; height: auto; margin: 0 auto 4px; image-rendering: pixelated; }
+  #print-area .fortune { font-style: italic; margin: 4px 0; }
   #print-area h2 { text-align: center; font-size: 18px; font-weight: 800; margin: 0 0 4px; }
   #print-area .c { text-align: center; margin: 2px 0; }
   #print-area .big { font-size: 15px; font-weight: 800; margin: 3px 0; }
