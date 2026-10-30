@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 const logoAsset = { url: "/mazaj-logo.jpg" };
 import { usePos } from "@/lib/pos";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // Shown once each time the app is opened (not on every page change).
 let shown = false;
@@ -30,6 +31,7 @@ export function Splash() {
   };
   return (
     <div className={`fixed inset-0 z-[100] grid place-items-center bg-background transition-opacity duration-500 ${state === "out" ? "opacity-0" : "opacity-100"}`}>
+      <div className="absolute end-4 top-4"><ThemeToggle /></div>
       <div key={play} className="text-center">
         <button type="button" onClick={() => setPlay((p) => p + 1)} aria-label="Replay" className="relative mx-auto block w-48">
           <div className="splash-steam absolute -top-8 left-1/2 h-10 w-2 -translate-x-1/2 rounded-full bg-primary/30" />
