@@ -38,7 +38,13 @@ export type PosState = {
   waiterPin: string; // 4-digit PIN waiters type to send orders to this register
   linkKey: string; // secret id of this register on the local Wi-Fi relay
   tabs: Tab[];
+  waiterLog?: WaiterLogEntry[]; // audit trail of waiter orders (created, modified, cancel requested/approved/rejected)
 };
+
+export type WaiterLogKind = "created" | "modified" | "cancelRequested" | "cancelApproved" | "cancelRejected" | "removed";
+export type WaiterLogEntry = { at: number; kind: WaiterLogKind; orderId: string; table?: string | undefined; total: number; detail?: string | undefined };
+/** Appends entries to the waiter log, keeping the newest 500. */
+export const appendLog = (log: WaiterLogEntry[] | undefined, ...entries: WaiterLogEntry[]) => [...(log ?? []), ...entries].slice(-500);
 
 const SEED_IMAGES: Record<string, string> = MENU_IMAGES;
 export const resolveImage = (img: string) =>
