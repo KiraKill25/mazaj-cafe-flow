@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Minus, Plus, Send, Printer, LogOut, ShoppingBag, X, Search } from "lucide-react";
+import { Minus, Plus, Send, Printer, LogOut, ShoppingBag, X, Search, ClipboardList, Pencil, Ban } from "lucide-react";
 const logoAsset = { url: "/mazaj-logo.jpg" };
 import { T, fmtDateTime, matchItem, money, usePos, type Category, type Item } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
@@ -27,9 +27,9 @@ type Line = { item: Item; qty: number };
 const PIN_KEY = "mazaj-waiter-pin";
 
 const TXT = {
-  en: { title: "Waiter", pin: "Register PIN", connect: "Connect", wrong: "Wrong PIN", offline: "Register not reachable. Is it open on the same Wi-Fi?", table: "Table number", tableReq: "Enter the table number", note: "Note for the kitchen (optional)", send: "Send to register", sent: "Order sent to register", newOrder: "New order", print: "Print ticket", logout: "Disconnect", cart: "Order", noMenu: "Waiting for the register menu…", sending: "Sending…" },
-  fr: { title: "Serveur", pin: "PIN de la caisse", connect: "Connecter", wrong: "PIN incorrect", offline: "Caisse injoignable. Est-elle ouverte sur le même Wi-Fi ?", table: "Numéro de table", tableReq: "Saisissez le numéro de table", note: "Note pour la cuisine (facultatif)", send: "Envoyer à la caisse", sent: "Commande envoyée à la caisse", newOrder: "Nouvelle commande", print: "Imprimer le ticket", logout: "Déconnecter", cart: "Commande", noMenu: "En attente du menu de la caisse…", sending: "Envoi…" },
-  ar: { title: "النادل", pin: "رمز الصندوق", connect: "اتصال", wrong: "رمز خاطئ", offline: "الصندوق غير متاح. هل هو مفتوح على نفس الواي فاي؟", table: "رقم الطاولة", tableReq: "أدخل رقم الطاولة", note: "ملاحظة للمطبخ (اختياري)", send: "إرسال إلى الصندوق", sent: "تم إرسال الطلب إلى الصندوق", newOrder: "طلب جديد", print: "طباعة التذكرة", logout: "قطع الاتصال", cart: "الطلب", noMenu: "في انتظار قائمة الصندوق…", sending: "جارٍ الإرسال…" },
+  en: { title: "Waiter", pin: "Register PIN", connect: "Connect", wrong: "Wrong PIN", offline: "Register not reachable. Is it open on the same Wi-Fi?", table: "Table number", tableReq: "Enter the table number", note: "Note for the kitchen (optional)", send: "Send to register", sent: "Order sent to register", newOrder: "New order", print: "Print ticket", logout: "Disconnect", cart: "Order", noMenu: "Waiting for the register menu…", sending: "Sending…", orders: "Orders", noOrders: "No orders waiting at the register", modify: "Modify", reqCancel: "Request cancel", reason: "Reason for cancelling?", pendingCancel: "Waiting for register approval", update: "Send update", updated: "Update sent to register", editing: "Editing order", stopEdit: "Stop editing", gone: "This order was already handled by the register." },
+  fr: { title: "Serveur", pin: "PIN de la caisse", connect: "Connecter", wrong: "PIN incorrect", offline: "Caisse injoignable. Est-elle ouverte sur le même Wi-Fi ?", table: "Numéro de table", tableReq: "Saisissez le numéro de table", note: "Note pour la cuisine (facultatif)", send: "Envoyer à la caisse", sent: "Commande envoyée à la caisse", newOrder: "Nouvelle commande", print: "Imprimer le ticket", logout: "Déconnecter", cart: "Commande", noMenu: "En attente du menu de la caisse…", sending: "Envoi…", orders: "Commandes", noOrders: "Aucune commande en attente à la caisse", modify: "Modifier", reqCancel: "Demander l'annulation", reason: "Motif de l'annulation ?", pendingCancel: "En attente de validation de la caisse", update: "Envoyer la modification", updated: "Modification envoyée à la caisse", editing: "Modification de commande", stopEdit: "Arrêter", gone: "Cette commande a déjà été traitée par la caisse." },
+  ar: { title: "النادل", pin: "رمز الصندوق", connect: "اتصال", wrong: "رمز خاطئ", offline: "الصندوق غير متاح. هل هو مفتوح على نفس الواي فاي؟", table: "رقم الطاولة", tableReq: "أدخل رقم الطاولة", note: "ملاحظة للمطبخ (اختياري)", send: "إرسال إلى الصندوق", sent: "تم إرسال الطلب إلى الصندوق", newOrder: "طلب جديد", print: "طباعة التذكرة", logout: "قطع الاتصال", cart: "الطلب", noMenu: "في انتظار قائمة الصندوق…", sending: "جارٍ الإرسال…", orders: "الطلبات", noOrders: "لا توجد طلبات في انتظار الصندوق", modify: "تعديل", reqCancel: "طلب إلغاء", reason: "سبب الإلغاء؟", pendingCancel: "في انتظار موافقة الصندوق", update: "إرسال التعديل", updated: "تم إرسال التعديل إلى الصندوق", editing: "تعديل الطلب", stopEdit: "إيقاف", gone: "تمت معالجة هذا الطلب من قبل الصندوق." },
 };
 
 function Waiter() {
@@ -51,6 +51,9 @@ function Waiter() {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState<WaiterOrder | null>(null);
+  const [orders, setOrders] = useState<WaiterOrder[]>([]);
+  const [showOrders, setShowOrders] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
 
   useEffect(() => { setPin(localStorage.getItem(PIN_KEY) ?? ""); }, []);
 
@@ -72,6 +75,27 @@ function Waiter() {
     return () => clearInterval(id);
   }, [pin, loadMenu]);
 
+  const loadOrders = useCallback(async (p: string) => {
+    try { const r = await relay<{ orders: WaiterOrder[] }>({ action: "list", pin: p }); if (r.orders) setOrders(r.orders); } catch { /* offline */ }
+  }, []);
+  useEffect(() => {
+    if (!pin) return;
+    loadOrders(pin);
+    const id = setInterval(() => loadOrders(pin), 5000);
+    return () => clearInterval(id);
+  }, [pin, loadOrders]);
+  const startEdit = (o: WaiterOrder) => {
+    setCart(o.lines.map((l) => ({ qty: l.qty, item: menu?.items.find((i) => i.id === l.id) ?? ({ id: l.id, name: l.name, price: l.price, category: "", image: "", outOfStock: false } as Item) })));
+    setType(o.type); setTable(o.table ?? ""); setNote(o.note ?? ""); setEditId(o.id); setShowOrders(false); setOpen(true);
+  };
+  const stopEdit = () => { setEditId(null); setCart([]); setTable(""); setNote(""); setOpen(false); };
+  const requestCancel = async (o: WaiterOrder) => {
+    const reason = window.prompt(w.reason);
+    if (reason === null) return;
+    const r = await relay({ action: "cancelReq", pin, id: o.id, reason: reason.trim() || undefined }).catch(() => ({ error: "network" }));
+    if (r.error) setErr(r.error === "not_found" ? w.gone : w.offline); else loadOrders(pin);
+  };
+
   const connect = async () => {
     const p = pinInput.trim();
     if (await loadMenu(p)) { localStorage.setItem(PIN_KEY, p); setPin(p); setPinInput(""); }
@@ -92,9 +116,9 @@ function Waiter() {
     if (type === "dineIn" && !table.trim()) { setErr(w.tableReq); return; }
     setBusy(true);
     try {
-      const r = await relay<{ order: WaiterOrder }>({ action: "order", pin, type, table: type === "dineIn" ? table.trim() : undefined, note: note.trim() || undefined, lines: cart.map((l) => ({ id: l.item.id, name: l.item.name, price: l.item.price, qty: l.qty })) });
-      if (r.order) { setSent(r.order); setCart([]); setTable(""); setNote(""); setOpen(false); setErr(""); }
-      else setErr(r.error === "wrong_pin" ? w.wrong : r.error === "table_required" ? w.tableReq : w.offline);
+      const r = await relay<{ order: WaiterOrder }>({ action: editId ? "update" : "order", ...(editId ? { id: editId } : {}), pin, type, table: type === "dineIn" ? table.trim() : undefined, note: note.trim() || undefined, lines: cart.map((l) => ({ id: l.item.id, name: l.item.name, price: l.item.price, qty: l.qty })) });
+      if (r.order) { setSent(r.order); setCart([]); setTable(""); setNote(""); setOpen(false); setErr(""); setEditId(null); loadOrders(pin); }
+      else setErr(r.error === "wrong_pin" ? w.wrong : r.error === "table_required" ? w.tableReq : r.error === "not_found" ? w.gone : w.offline);
     } catch { setErr(w.offline); }
     setBusy(false);
   };
@@ -107,7 +131,7 @@ function Waiter() {
           <h1 className="font-display text-2xl font-black">MAZAJ · {w.title}</h1>
           <div className="flex justify-center"><LangBar /></div>
           <label className="block text-sm font-bold text-muted-foreground">{w.pin}</label>
-          <input inputMode="numeric" maxLength={4} autoFocus value={pinInput} onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => e.key === "Enter" && connect()} className="h-16 w-full rounded-xl border border-input bg-background text-center text-3xl font-black tracking-[0.5em]" />
+          <input inputMode="numeric" pattern="[0-9]*" autoComplete="one-time-code" maxLength={4} autoFocus value={pinInput} onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => e.key === "Enter" && connect()} className="h-16 w-full rounded-xl border border-input bg-background text-center text-3xl font-black tracking-[0.5em]" />
           {err && <p className="text-sm font-bold text-destructive">{err}</p>}
           <button onClick={connect} disabled={pinInput.length !== 4} className="h-14 w-full rounded-xl bg-primary text-lg font-extrabold text-primary-foreground disabled:opacity-40">{w.connect}</button>
         </div>
@@ -116,7 +140,7 @@ function Waiter() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background pb-24 text-foreground">
+    <div className="flex min-h-dvh flex-col bg-background pb-[calc(6rem+env(safe-area-inset-bottom))] text-foreground">
       <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-border bg-card px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
           <img src={logoAsset.url} alt="MAZAJ" className="h-10 w-10 rounded-xl object-cover" />
@@ -125,9 +149,11 @@ function Waiter() {
         <div className="flex items-center gap-1">
           <LangBar />
           <ThemeToggle />
+          <button onClick={() => setShowOrders(true)} aria-label={w.orders} title={w.orders} className="relative grid h-11 w-11 place-items-center rounded-xl bg-accent text-accent-foreground"><ClipboardList size={18} />{orders.length > 0 && <span className="absolute -end-1 -top-1 min-w-5 rounded-full bg-primary px-1 text-xs leading-5 text-primary-foreground">{orders.length}</span>}</button>
           <button onClick={() => { localStorage.removeItem(PIN_KEY); setPin(""); setMenu(null); }} aria-label={w.logout} title={w.logout} className="grid h-11 w-11 place-items-center rounded-xl bg-muted"><LogOut size={18} /></button>
         </div>
       </header>
+      {editId && <div className="flex items-center gap-2 bg-accent px-4 py-2 font-bold text-accent-foreground"><Pencil size={16} /><span className="flex-1">{w.editing}</span><button onClick={stopEdit} className="h-9 rounded-lg bg-background/30 px-3 text-sm">{w.stopEdit}</button></div>}
       {err && <p className="bg-destructive/10 px-4 py-2 text-center text-sm font-bold text-destructive">{err}</p>}
       <div className="px-3 pt-3">
         <div className="relative">
@@ -157,14 +183,14 @@ function Waiter() {
       </div>
 
       {count > 0 && !open && (
-        <button onClick={() => setOpen(true)} className="fixed inset-x-3 bottom-3 z-30 flex h-16 items-center justify-between rounded-2xl bg-primary px-5 text-lg font-extrabold text-primary-foreground shadow-xl">
+        <button onClick={() => setOpen(true)} className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-30 flex h-16 items-center justify-between rounded-2xl bg-primary px-5 text-lg font-extrabold text-primary-foreground shadow-xl">
           <span className="flex items-center gap-2"><ShoppingBag />{w.cart} · {count}</span><span>{money(total, cur)}</span>
         </button>
       )}
 
       {open && (
         <div className="fixed inset-0 z-40 flex items-end bg-foreground/40" onClick={() => setOpen(false)}>
-          <div className="max-h-[90dvh] w-full space-y-3 overflow-y-auto rounded-t-3xl bg-card p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="max-h-[90dvh] w-full space-y-3 overflow-y-auto overscroll-contain rounded-t-3xl bg-card p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="font-display text-xl font-extrabold">{w.cart}</h2>
               <button onClick={() => setOpen(false)} aria-label="Close" className="grid h-11 w-11 place-items-center rounded-xl bg-muted"><X /></button>
@@ -189,7 +215,38 @@ function Waiter() {
             <input value={note} onChange={(e) => setNote(e.target.value.slice(0, 200))} placeholder={w.note} className="h-12 w-full rounded-xl border border-input bg-background px-3" />
             <div className="flex justify-between font-display text-2xl font-black"><span>{t.total}</span><span>{money(total, cur)}</span></div>
             {err && <p className="text-center text-sm font-bold text-destructive">{err}</p>}
-            <button onClick={send} disabled={busy || !cart.length || (type === "dineIn" && !table.trim())} className="flex h-16 w-full items-center justify-center gap-2 rounded-2xl bg-success text-lg font-extrabold text-success-foreground disabled:opacity-40"><Send />{busy ? w.sending : w.send}</button>
+            <button onClick={send} disabled={busy || !cart.length || (type === "dineIn" && !table.trim())} className="flex h-16 w-full items-center justify-center gap-2 rounded-2xl bg-success text-lg font-extrabold text-success-foreground disabled:opacity-40"><Send />{busy ? w.sending : editId ? w.update : w.send}</button>
+          </div>
+        </div>
+      )}
+
+      {showOrders && (
+        <div className="fixed inset-0 z-40 flex items-end bg-foreground/40" onClick={() => setShowOrders(false)}>
+          <div className="max-h-[90dvh] w-full space-y-3 overflow-y-auto overscroll-contain rounded-t-3xl bg-card p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-xl font-extrabold">{w.orders} ({orders.length})</h2>
+              <button onClick={() => setShowOrders(false)} aria-label="Close" className="grid h-11 w-11 place-items-center rounded-xl bg-muted"><X /></button>
+            </div>
+            {!orders.length && <p className="py-8 text-center text-muted-foreground">{w.noOrders}</p>}
+            {[...orders].reverse().map((o) => (
+              <div key={o.id} className="rounded-2xl bg-muted p-3">
+                <div className="flex items-center gap-2">
+                  <span className="font-display text-lg font-extrabold">{o.table ? `${w.table}: ${o.table}` : t.takeaway}</span>
+                  <span className="text-xs text-muted-foreground">{fmtDateTime(o.at, lang)}</span>
+                  <span className="ms-auto font-bold">{money(o.total, cur)}</span>
+                </div>
+                <ul className="mt-1 text-sm">{o.lines.map((l) => <li key={l.id}>{l.qty} × {l.name[lang]}</li>)}</ul>
+                {o.note && <p className="text-sm italic">“{o.note}”</p>}
+                {o.cancelRequest ? (
+                  <p className="mt-2 rounded-lg bg-destructive/10 p-2 text-center text-sm font-bold text-destructive">{w.pendingCancel}</p>
+                ) : (
+                  <div className="mt-2 flex gap-2">
+                    <button onClick={() => startEdit(o)} className="flex h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-accent font-bold text-accent-foreground"><Pencil size={16} />{w.modify}</button>
+                    <button onClick={() => requestCancel(o)} className="flex h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-destructive/10 font-bold text-destructive"><Ban size={16} />{w.reqCancel}</button>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -197,7 +254,7 @@ function Waiter() {
       {sent && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/50 p-4">
           <div className="w-full max-w-sm space-y-3 rounded-3xl bg-card p-6 text-center shadow-xl">
-            <h2 className="font-display text-2xl font-black text-success">✓ {w.sent}</h2>
+            <h2 className="font-display text-2xl font-black text-success">✓ {sent.modifiedAt ? w.updated : w.sent}</h2>
             <p className="font-display text-xl font-extrabold">{sent.table ? `${w.table}: ${sent.table}` : t.takeaway}</p>
             <ul className="text-start">{sent.lines.map((l) => <li key={l.id} className="flex justify-between"><span>{l.qty} × {l.name[lang]}</span><span>{money(l.price * l.qty, cur)}</span></li>)}</ul>
             <div className="flex justify-between border-t border-border pt-2 text-xl font-black"><span>{t.total}</span><span>{money(sent.total, cur)}</span></div>
