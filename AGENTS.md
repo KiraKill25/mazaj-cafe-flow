@@ -13,3 +13,4 @@
 - Format dates only via fmtDate/fmtDateTime in pos.ts — dates must follow the active language.
 - Menu photos, logo and fonts are bundled locally (public/, @fontsource) — the Windows installer must work with no internet.
 - Desktop build: `MAZAJ_DESKTOP=1 vite build` switches nitro to node-server; windows/ holds the launcher and Inno Setup script.
+- Waiters may edit orders or request cancellation over the relay, but only the register (linkKey) can approve/reject; the register keeps the audit trail in PosState.waiterLog — the PC stays the single authority.
