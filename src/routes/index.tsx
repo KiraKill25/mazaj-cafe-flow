@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 const logoAsset = { url: "/mazaj-logo.jpg" };
 import { Minus, Plus, Trash2, Banknote, CreditCard, ShieldCheck, ReceiptText, Printer, X, Smartphone, Search, Utensils, ChefHat, Clock } from "lucide-react";
-import { T, TX, CX, currentOrderNum, dayKey, fmtDateTime, openSession, fmtOrder, money, resolveImage, matchItem, mergeLines, linesTotal, type SaleLine, type Tab, setPos, usePos, type Item, type Lang, type Sale } from "@/lib/pos";
+import { T, TX, CX, currentOrderNum, dayKey, fmtDateTime, openSession, fmtOrder, money, resolveImage, matchItem, mergeLines, linesTotal, parseAmount, type SaleLine, type Tab, setPos, usePos, type Item, type Lang, type Sale } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Splash } from "@/components/Splash";
@@ -334,7 +334,7 @@ function Register() {
             <h2 className="font-display text-2xl font-black">{c.openTitle}</h2>
             <label className="block text-sm font-bold text-muted-foreground">{c.float} ({pos.currency})</label>
             <input inputMode="decimal" autoFocus value={float} onChange={(e) => setFloat(e.target.value)} placeholder="0.00" className="h-14 w-full rounded-xl border border-input bg-background px-4 text-center text-2xl font-bold" />
-            <button onClick={() => { const f = parseFloat(float.replace(",", ".")) || 0; setPos((s) => ({ ...s, sessions: [...(s.sessions ?? []), { id: crypto.randomUUID(), openedAt: Date.now(), float: f }] })); setFloat(""); }} className="h-14 w-full rounded-xl bg-primary text-lg font-extrabold text-primary-foreground">{c.open}</button>
+            <button onClick={() => { const f = parseAmount(float); if (!(f >= 0)) { alert({ en: "Enter the starting cash (0 if empty).", fr: "Saisissez le fond de caisse (0 si vide).", ar: "أدخل المبلغ الافتتاحي (0 إن كان فارغاً)." }[pos.lang]); return; } setPos((s) => ({ ...s, sessions: [...(s.sessions ?? []), { id: crypto.randomUUID(), openedAt: Date.now(), float: f }] })); setFloat(""); }} className="h-14 w-full rounded-xl bg-primary text-lg font-extrabold text-primary-foreground">{c.open}</button>
           </div>
         </div>
       )}

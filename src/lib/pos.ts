@@ -131,33 +131,39 @@ const EXTRA = {
 } as const;
 export const TX = { en: { ...T.en, ...EXTRA.en }, fr: { ...T.fr, ...EXTRA.fr }, ar: { ...T.ar, ...EXTRA.ar } };
 
+/** Rounds to 2 decimals so money sums never drift (0.1 + 0.2 issues). */
+export const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+/** Parses a typed amount ("1 500,50" → 1500.5); NaN when invalid. */
+export const parseAmount = (v: string) => { const n = parseFloat(v.replace(/\s/g, "").replace(",", ".")); return Number.isFinite(n) ? round2(n) : NaN; };
+
 /** Start of the period (local time) containing `now`. Weeks start on Monday. */
-export function periodStart(period: "day" | "week" | "month", now = new Date()): number {
+export function periodStart(period: "day" | "week" | "month" | "year", now = new Date()): number {
   const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   if (period === "week") d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
   if (period === "month") d.setDate(1);
+  if (period === "year") d.setMonth(0, 1);
   return d.getTime();
 }
 
 export function summarize(sales: Sale[], from: number) {
   const all = sales.filter((x) => x.at >= from);
   const s = all.filter((x) => !x.cancelled);
-  const revenue = s.reduce((a, x) => a + x.total, 0);
-  const cash = s.filter((x) => x.method === "cash").reduce((a, x) => a + x.total, 0);
+  const revenue = round2(s.reduce((a, x) => a + x.total, 0));
+  const cash = round2(s.filter((x) => x.method === "cash").reduce((a, x) => a + x.total, 0));
   const top = new Map<string, { name: Record<Lang, string>; qty: number; amount: number }>();
   for (const x of s) for (const l of x.lines) {
     const e = top.get(l.id) ?? { name: l.name, qty: 0, amount: 0 };
-    e.qty += l.qty; e.amount += l.qty * l.price; top.set(l.id, e);
+    e.qty += l.qty; e.amount = round2(e.amount + l.qty * l.price); top.set(l.id, e);
   }
-  return { all, sales: s, count: s.length, revenue, cash, card: revenue - cash, avg: s.length ? revenue / s.length : 0, top: [...top.values()].sort((a, b) => b.qty - a.qty) };
+  return { all, sales: s, count: s.length, cancelledCount: all.length - s.length, revenue, cash, card: round2(revenue - cash), avg: s.length ? round2(revenue / s.length) : 0, top: [...top.values()].sort((a, b) => b.qty - a.qty) };
 }
 
 /** Expenses since `from`, total and per-category breakdown (largest first). */
 export function summarizeExpenses(expenses: Expense[], from: number) {
   const e = expenses.filter((x) => x.at >= from);
   const byCat = new Map<string, number>();
-  for (const x of e) byCat.set(x.category, (byCat.get(x.category) ?? 0) + x.amount);
-  return { expenses: e, total: e.reduce((a, x) => a + x.amount, 0), byCat: [...byCat.entries()].sort((a, b) => b[1] - a[1]) };
+  for (const x of e) byCat.set(x.category, round2((byCat.get(x.category) ?? 0) + x.amount));
+  return { expenses: e, total: round2(e.reduce((a, x) => a + x.amount, 0)), byCat: [...byCat.entries()].sort((a, b) => b[1] - a[1]) };
 }
 
 export type TKey = keyof typeof T.en;
@@ -182,12 +188,23 @@ export const openSession = (s: Pick<PosState, "sessions">) => (s.sessions ?? [])
 export function sessionTotals(s: Pick<PosState, "sales" | "expenses">, sess: Session, now = Date.now()) {
   const end = sess.closedAt ?? now;
   const inRange = (t: number) => t >= sess.openedAt && t <= end;
-  const sales = (s.sales ?? []).filter((x) => inRange(x.at) && !x.cancelled);
-  const cash = sales.filter((x) => x.method === "cash").reduce((a, x) => a + x.total, 0);
-  const card = sales.filter((x) => x.method === "card").reduce((a, x) => a + x.total, 0);
-  const cashOut = (s.expenses ?? []).filter((x) => x.fromDrawer && inRange(x.at)).reduce((a, x) => a + x.amount, 0);
-  const expected = sess.float + cash - cashOut;
-  return { orders: sales.length, cash, card, cashOut, expected, revenue: cash + card, diff: sess.counted == null ? null : sess.counted - expected };
+  const all = (s.sales ?? []).filter((x) => inRange(x.at));
+  const sales = all.filter((x) => !x.cancelled);
+  const cancelled = all.filter((x) => x.cancelled);
+  const cash = round2(sales.filter((x) => x.method === "cash").reduce((a, x) => a + x.total, 0));
+  const card = round2(sales.filter((x) => x.method === "card").reduce((a, x) => a + x.total, 0));
+  const exps = (s.expenses ?? []).filter((x) => inRange(x.at));
+  const drawerOut = exps.filter((x) => x.fromDrawer);
+  const cashOut = round2(drawerOut.reduce((a, x) => a + x.amount, 0));
+  const expensesTotal = round2(exps.reduce((a, x) => a + x.amount, 0));
+  const expected = round2(sess.float + cash - cashOut);
+  const revenue = round2(cash + card);
+  return {
+    orders: sales.length, cash, card, cashOut, expected, revenue,
+    cancelledCount: cancelled.length, cancelledTotal: round2(cancelled.reduce((a, x) => a + x.total, 0)),
+    drawerOut, expensesTotal, net: round2(revenue - expensesTotal),
+    diff: sess.counted == null ? null : round2(sess.counted - expected),
+  };
 }
 
 const csvCell = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;

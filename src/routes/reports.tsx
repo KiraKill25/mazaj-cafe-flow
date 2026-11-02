@@ -2,7 +2,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Package , Wallet } from "lucide-react";
-import { type Lang, type Sale, TX, CX, fmtDateTime, setPos, fmtOrder, money, periodStart, summarize, usePos } from "@/lib/pos";
+import { type Lang, type Sale, TX, CX, fmtDateTime, setPos, fmtOrder, money, periodStart, summarize, summarizeExpenses, round2, usePos } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { PinGate } from "@/components/PinGate";
 
@@ -22,25 +22,28 @@ export const Route = createFileRoute("/reports")({
   component: () => { useDir(); return <PinGate>{() => <Reports />}</PinGate>; },
 });
 
-type Period = "day" | "week" | "month";
+type Period = "day" | "week" | "month" | "year";
 
 function Reports() {
   const pos = usePos();
   const t = TX[pos.lang];
   const [period, setPeriod] = useState<Period>("day");
   const r = summarize(pos.sales ?? [], periodStart(period));
+  const ex = summarizeExpenses(pos.expenses ?? [], periodStart(period));
+  const net = round2(r.revenue - ex.total);
+  const N = { en: { exp: "Expenses", net: "Net result", year: "This year", canc: "Cancelled" }, fr: { exp: "Charges", net: "Résultat net", year: "Cette année", canc: "Annulées" }, ar: { exp: "المصاريف", net: "صافي النتيجة", year: "هذه السنة", canc: "ملغاة" } }[pos.lang];
   const c = CX[pos.lang];
   const cancel = (s: Sale) => {
     const reason = window.prompt(c.reason);
     if (reason === null) return;
     setPos((st) => ({ ...st, sales: st.sales.map((x) => (x.at === s.at && x.num === s.num ? { ...x, cancelled: { at: Date.now(), reason: reason.trim() || undefined } } : x)) }));
   };
-  const labels: Record<Period, string> = { day: t.today, week: t.week, month: t.month };
+  const labels: Record<Period, string> = { day: t.today, week: t.week, month: t.month, year: N.year };
 
-  const stat = (label: string, value: string) => (
+  const stat = (label: string, value: string, cls = "") => (
     <div className="rounded-2xl border border-border bg-card p-4">
       <div className="text-sm font-bold text-muted-foreground">{label}</div>
-      <div className="mt-1 font-display text-2xl font-black">{value}</div>
+      <div className={`mt-1 font-display text-2xl font-black ${cls}`}>{value}</div>
     </div>
   );
 
@@ -60,8 +63,8 @@ function Reports() {
 
       <div className="mx-auto max-w-6xl space-y-6 p-4">
         <div className="flex gap-2 rounded-2xl bg-muted p-1 sm:w-fit">
-          {(["day", "week", "month"] as const).map((p) => (
-            <button key={p} onClick={() => setPeriod(p)} className={`h-12 flex-1 rounded-xl px-5 font-bold sm:flex-none ${period === p ? "bg-foreground text-background" : "text-muted-foreground"}`}>{labels[p]}</button>
+          {(["day", "week", "month", "year"] as const).map((p) => (
+            <button key={p} onClick={() => setPeriod(p)} className={`h-12 flex-1 rounded-xl px-3 sm:px-5 font-bold sm:flex-none ${period === p ? "bg-foreground text-background" : "text-muted-foreground"}`}>{labels[p]}</button>
           ))}
         </div>
 
@@ -71,6 +74,11 @@ function Reports() {
           {stat(t.avgTicket, money(r.avg, pos.currency))}
           {stat(t.cash, money(r.cash, pos.currency))}
           {stat(t.card, money(r.card, pos.currency))}
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {stat(N.exp, money(ex.total, pos.currency), "text-destructive")}
+          {stat(N.net, money(net, pos.currency), net >= 0 ? "text-success" : "text-destructive")}
+          {stat(N.canc, String(r.cancelledCount))}
         </div>
 
         {r.all.length === 0 ? (
