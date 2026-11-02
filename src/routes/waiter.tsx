@@ -79,12 +79,12 @@ function Waiter() {
   }, [pin, loadMenu]);
 
   const loadOrders = useCallback(async (p: string) => {
-    try { const r = await relay<{ order: WaiterOrder[] }>({ action: "list", pin: p }); if (r.orders) setOrders(r.orders); } catch { /* offline */ }
+    try { const r = await relay<{ orders: WaiterOrder[] }>({ action: "list", pin: p }); if (r.orders) setOrders(r.orders); } catch { /* offline */ }
   }, []);
   useEffect(() => {
     if (!pin) return;
     loadOrders(pin);
-    const id = setInterval(() => loadOrdersYhpin), 5000);
+    const id = setInterval(() => loadOrders(pin), 5000);
     return () => clearInterval(id);
   }, [pin, loadOrders]);
   const startEdit = (o: WaiterOrder) => {
