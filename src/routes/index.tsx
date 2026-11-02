@@ -105,16 +105,21 @@ function Register() {
   const minsSince = (t0: number) => Math.max(0, Math.floor(((now || Date.now()) - t0) / 60000));
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(id); }, []);
   const [waiterHost, setWaiterHost] = useState("");
-  useEffect(() => {
-    setWaiterHost(localStorage.getItem("mazaj-waiter-host") || window.location.origin);
-    // Auto-detect this PC's Wi-Fi address so phones can scan the QR code without typing anything.
-    fetch("/api/public/network").then((r) => r.json()).then((d: { ips?: string[]; port?: string }) => {
+  // Auto-detect this PC's Wi-Fi address so phones can scan the QR code without typing anything.
+  const detectHost = () => {
+    fetch("/api/public/network", { cache: "no-store" }).then((r) => r.json()).then((d: { ips?: string[]; port?: string }) => {
       const ip = d.ips?.[0];
       if (!ip) return;
       const host = `http://${ip}${d.port ? `:${d.port}` : ""}`;
       setWaiterHost(host);
       localStorage.setItem("mazaj-waiter-host", host);
     }).catch(() => undefined);
+  };
+  useEffect(() => {
+    setWaiterHost(localStorage.getItem("mazaj-waiter-host") || window.location.origin);
+    detectHost();
+    const id = setInterval(detectHost, 60000);
+    return () => clearInterval(id);
   }, []);
   const [showLog, setShowLog] = useState(false);
   const waiterUrl = waiterHost.trim() ? `${waiterHost.trim().replace(/\/+$/, "").replace(/\/waiter$/, "")}/waiter` : "";
@@ -388,7 +393,10 @@ function Register() {
                 {waiterUrl && <div className="shrink-0 rounded-lg bg-background p-1.5"><QRCodeSVG value={waiterUrl} size={96} /></div>}
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className="text-xs font-semibold">{W.addr}</p>
-                  <input dir="ltr" value={waiterHost} onChange={(e) => { setWaiterHost(e.target.value); localStorage.setItem("mazaj-waiter-host", e.target.value); }} placeholder="http://192.168.1.10:8080" className="h-9 w-full rounded-lg border border-input bg-background px-2 font-mono text-xs" />
+                  <div className="flex gap-1">
+                    <input dir="ltr" value={waiterHost} onChange={(e) => { setWaiterHost(e.target.value); localStorage.setItem("mazaj-waiter-host", e.target.value); }} placeholder="http://192.168.1.10:8080" className="h-9 min-w-0 flex-1 rounded-lg border border-input bg-background px-2 font-mono text-xs" />
+                    <button onClick={detectHost} aria-label="Refresh Wi-Fi address" title="Wi-Fi" className="h-9 shrink-0 rounded-lg bg-background px-2 text-xs font-bold">↻ Wi-Fi</button>
+                  </div>
                   {waiterUrl && <b dir="ltr" className="block select-all truncate text-xs">{waiterUrl}</b>}
                   <p className="text-xs leading-snug text-muted-foreground">{W.hint}</p>
                 </div>

@@ -25,12 +25,14 @@ const TXT = {
 };
 
 export function GameQR({ table, items, lang }: { table: string; items: string[]; lang: Lang }) {
+  const url = gameLink(table, items, lang);
   return (
     <div className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-muted/50 p-4">
       <div className="rounded-xl bg-white p-3">
-        <QRCodeSVG value={gameLink(table, items, lang)} size={180} level="M" />
+        <QRCodeSVG value={url} size={180} level="M" />
       </div>
       <p className="text-sm font-bold">{TXT[lang]}</p>
+      <a href={url} target="_blank" rel="noreferrer" dir="ltr" className="font-mono text-xs font-bold underline">{MAZAJ_GAME_URL.replace("https://", "")}</a>
     </div>
   );
 }
