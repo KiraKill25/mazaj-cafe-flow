@@ -30,7 +30,7 @@ const PIN_KEY = "mazaj-waiter-pin";
 const TXT = {
   en: { title: "Waiter", pin: "Register PIN", connect: "Connect", wrong: "Wrong PIN", offline: "Register not reachable. Is it open on the same Wi-Fi?", table: "Table number", tableReq: "Enter the table number", note: "Note for the kitchen (optional)", send: "Send to register", sent: "Order sent to register", newOrder: "New order", print: "Print ticket", logout: "Disconnect", cart: "Order", noMenu: "Waiting for the register menu…", sending: "Sending…", orders: "Orders", noOrders: "No orders waiting at the register", modify: "Modify", reqCancel: "Request cancel", reason: "Reason for cancelling?", pendingCancel: "Waiting for register approval", update: "Send update", updated: "Update sent to register", editing: "Editing order", stopEdit: "Stop editing", gone: "This order was already handled by the register." },
   fr: { title: "Serveur", pin: "PIN de la caisse", connect: "Connecter", wrong: "PIN incorrect", offline: "Caisse injoignable. Est-elle ouverte sur le même Wi-Fi ?", table: "Numéro de table", tableReq: "Saisissez le numéro de table", note: "Note pour la cuisine (facultatif)", send: "Envoyer à la caisse", sent: "Commande envoyée à la caisse", newOrder: "Nouvelle commande", print: "Imprimer le ticket", logout: "Déconnecter", cart: "Commande", noMenu: "En attente du menu de la caisse…", sending: "Envoi…", orders: "Commandes", noOrders: "Aucune commande en attente à la caisse", modify: "Modifier", reqCancel: "Demander l'annulation", reason: "Motif de l'annulation ?", pendingCancel: "En attente de validation de la caisse", update: "Envoyer la modification", updated: "Modification envoyée à la caisse", editing: "Modification de commande", stopEdit: "Arrêter", gone: "Cette commande a déjà été traitée par la caisse." },
-  ar: { title: "النادل", pin: "رمز الصندوق", connect: "اتصال", wrong: "رمز خاطئ", offline: "الصندوق غير متاح. هل هو مفتوح على نفس الواي فاي؟", table: "رقم الطاولة", tableReq: "أدخل رقم الطاولة", note: "ملاحظة للمطبخ (اختياري)", send: "إرسال إلى الصندوق", send: "تم إرسال الطلب إلى الصندوق", newOrder: "طلب جديد", print: "طباعة التذكرة", logout: "قطع الاتصال", cart: "الطلب", noMenu: "في انتظار قائمة الصندوق…", sending: "جارٍ الإرسال…", orders: "الطلبات", noOrders: "لا توجد طلبات في انتظار الصندوق", modify: "تعديل", reqCancel: "طلب إلغاء", reason: "سبب الإلغاء؟", pendingCancel: "في انتظار موافقة الصندوق", update: "إرسال التعديل", updated: "تم إرسال التعديل إلى الصندوق", editing: "تعديل الطلب", stopEdit: "إيقاف", gone: "تمت معالجة هذا الطلب من قبل الصندوق." },
+  ar: { title: "النادل", pin: "رمز الصندوق", connect: "اتصال", wrong: "رمز خاطئ", offline: "الصندوق غير متاح. هل هو مفتوح على نفس الواي فاي؟", table: "رقم الطاولة", tableReq: "أدخل رقم الطاولة", note: "ملاحظة للمطبخ (اختياري)", send: "إرسال إلى الصندوق", sent: "تم إرسال الطلب إلى الصندوق", newOrder: "طلب جديد", print: "طباعة التذكرة", logout: "قطع الاتصال", cart: "الطلب", noMenu: "في انتظار قائمة الصندوق…", sending: "جارٍ الإرسال…", orders: "الطلبات", noOrders: "لا توجد طلبات في انتظار الصندوق", modify: "تعديل", reqCancel: "طلب إلغاء", reason: "سبب الإلغاء؟", pendingCancel: "في انتظار موافقة الصندوق", update: "إرسال التعديل", updated: "تم إرسال التعديل إلى الصندوق", editing: "تعديل الطلب", stopEdit: "إيقاف", gone: "تمت معالجة هذا الطلب من قبل الصندوق." },
 };
 
 function Waiter() {
@@ -79,12 +79,12 @@ function Waiter() {
   }, [pin, loadMenu]);
 
   const loadOrders = useCallback(async (p: string) => {
-    try { const r = await relay<{ order: WaiterOrder[] }>({ action: "list", pin: p }); if (r.orders) setOrders(r.orders); } catch { /* offline */ }
+    try { const r = await relay<{ orders: WaiterOrder[] }>({ action: "list", pin: p }); if (r.orders) setOrders(r.orders); } catch { /* offline */ }
   }, []);
   useEffect(() => {
     if (!pin) return;
     loadOrders(pin);
-    const id = setInterval(() => loadOrdersYhpin), 5000);
+    const id = setInterval(() => loadOrders(pin), 5000);
     return () => clearInterval(id);
   }, [pin, loadOrders]);
   const startEdit = (o: WaiterOrder) => {
