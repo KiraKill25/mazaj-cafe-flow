@@ -2,7 +2,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, BarChart3, Check, Package, Pencil, Trash2, X } from "lucide-react";
-import { CX, fmtDate, money, periodStart, setPos, summarize, summarizeExpenses, usePos, type Lang } from "@/lib/pos";
+import { CX, fmtDate, money, periodStart, setPos, summarize, summarizeExpenses, parseAmount, round2, usePos, type Lang } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { PinGate } from "@/components/PinGate";
 
@@ -22,12 +22,12 @@ export const Route = createFileRoute("/expenses")({
 });
 
 const L = {
-  en: { title: "Expenses", add: "Add expense", label: "Description", amount: "Amount", date: "Date", note: "Note (optional)", cats: "Expense categories", addCat: "Add category", total: "Total expenses", revenue: "Sales", net: "Net result", none: "No expenses in this period", today: "Today", week: "This week", month: "This month", all: "All", del: "Delete", other: "Other", name: "Name" },
-  fr: { title: "Charges", add: "Ajouter une charge", label: "Description", amount: "Montant", date: "Date", note: "Note (facultatif)", cats: "Catégories de charges", addCat: "Ajouter une catégorie", total: "Total des charges", revenue: "Ventes", net: "Résultat net", none: "Aucune charge sur cette période", today: "Aujourd'hui", week: "Cette semaine", month: "Ce mois", all: "Tout", del: "Supprimer", other: "Autre", name: "Nom" },
-  ar: { title: "المصاريف", add: "إضافة مصروف", label: "الوصف", amount: "المبلغ", date: "التاريخ", note: "ملاحظة (اختياري)", cats: "فئات المصاريف", addCat: "إضافة فئة", total: "مجموع المصاريف", revenue: "المبيعات", net: "صافي النتيجة", none: "لا توجد مصاريف في هذه الفترة", today: "اليوم", week: "هذا الأسبوع", month: "هذا الشهر", all: "الكل", del: "حذف", other: "أخرى", name: "الاسم" },
+  en: { title: "Expenses", add: "Add expense", label: "Description", amount: "Amount", date: "Date", note: "Note (optional)", cats: "Expense categories", addCat: "Add category", total: "Total expenses", revenue: "Sales", net: "Net result", none: "No expenses in this period", today: "Today", week: "This week", month: "This month", year: "This year", all: "All", del: "Delete", other: "Other", name: "Name" },
+  fr: { title: "Charges", add: "Ajouter une charge", label: "Description", amount: "Montant", date: "Date", note: "Note (facultatif)", cats: "Catégories de charges", addCat: "Ajouter une catégorie", total: "Total des charges", revenue: "Ventes", net: "Résultat net", none: "Aucune charge sur cette période", today: "Aujourd'hui", week: "Cette semaine", month: "Ce mois", year: "Cette année", all: "Tout", del: "Supprimer", other: "Autre", name: "Nom" },
+  ar: { title: "المصاريف", add: "إضافة مصروف", label: "الوصف", amount: "المبلغ", date: "التاريخ", note: "ملاحظة (اختياري)", cats: "فئات المصاريف", addCat: "إضافة فئة", total: "مجموع المصاريف", revenue: "المبيعات", net: "صافي النتيجة", none: "لا توجد مصاريف في هذه الفترة", today: "اليوم", week: "هذا الأسبوع", month: "هذا الشهر", year: "هذه السنة", all: "الكل", del: "حذف", other: "أخرى", name: "الاسم" },
 };
 
-type Period = "day" | "week" | "month" | "all";
+type Period = "day" | "week" | "month" | "year" | "all";
 type Names = Record<Lang, string>;
 const blank: Names = { fr: "", en: "", ar: "" };
 const fill = (n: Names): Names => ({ fr: n.fr.trim(), en: n.en.trim() || n.fr.trim(), ar: n.ar.trim() || n.fr.trim() });
@@ -49,7 +49,7 @@ function Expenses() {
   const catName = (id: string) => cats.find((c) => c.id === id)?.name[pos.lang] ?? t.other;
 
   const add = () => {
-    const amount = parseFloat(draft.amount.replace(",", "."));
+    const amount = parseAmount(draft.amount);
     if (!draft.label.trim() || !(amount > 0)) return;
     const d = new Date(draft.date + "T12:00:00");
     const at = draft.date === today() ? Date.now() : d.getTime();
@@ -73,7 +73,7 @@ function Expenses() {
       <div className={`mt-1 font-display text-2xl font-black ${cls}`}>{value}</div>
     </div>
   );
-  const net = revenue - r.total;
+  const net = round2(revenue - r.total);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -92,8 +92,8 @@ function Expenses() {
       <div className="mx-auto grid max-w-6xl gap-6 p-4 lg:grid-cols-[1fr_340px]">
         <section className="space-y-6">
           <div className="flex gap-2 rounded-2xl bg-muted p-1 sm:w-fit">
-            {(["day", "week", "month", "all"] as const).map((p) => (
-              <button key={p} onClick={() => setPeriod(p)} className={`h-12 flex-1 rounded-xl px-4 font-bold sm:flex-none ${period === p ? "bg-foreground text-background" : "text-muted-foreground"}`}>{{ day: t.today, week: t.week, month: t.month, all: t.all }[p]}</button>
+            {(["day", "week", "month", "year", "all"] as const).map((p) => (
+              <button key={p} onClick={() => setPeriod(p)} className={`h-12 flex-1 rounded-xl px-2 font-bold sm:flex-none sm:px-4 ${period === p ? "bg-foreground text-background" : "text-muted-foreground"}`}>{{ day: t.today, week: t.week, month: t.month, year: t.year, all: t.all }[p]}</button>
             ))}
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
