@@ -1,3 +1,4 @@
+import { RECEIPT_LOGO } from "@/lib/receiptLogo";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 const logoAsset = { url: "/mazaj-logo.jpg" };
@@ -478,7 +479,7 @@ function PrintArea({ done, currency }: { done: Done; currency: string }) {
   return (
     <div id="print-area" dir={done.lang === "ar" ? "rtl" : "ltr"}>
       {done.receipt !== false && <div className="receipt">
-        <img className="logo" src="/receipt-logo.png" alt="MAZAJ Coffee Shop" />
+        <img className="logo" src={RECEIPT_LOGO} alt="MAZAJ Coffee Shop" />
         <p className="c">{fmtDateTime(done.at, done.lang)}</p>
         <p className="big c">{t.order} {fmtOrder(done.num)}</p>
         <p className="c">{t[done.type]}{done.table ? ` · Table ${done.table}` : ""}</p>
