@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Minus, Plus, Send, Printer, LogOut, ShoppingBag, X, Search, ClipboardList, Pencil, Ban } from "lucide-react";
+import { Minus, Plus, Send, Printer, LogOut, ShoppingBag, X, Search, ClipboardList, Pencil, Ban, Sparkles } from "lucide-react";
 const logoAsset = { url: "/mazaj-logo.jpg" };
 import { T, fmtDateTime, matchItem, money, usePos, type Category, type Item } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { relay, type WaiterOrder } from "@/lib/waiterLink";
+import { GameQR } from "@/components/GameQR";
 
 export const Route = createFileRoute("/waiter")({
   ssr: false,
@@ -29,7 +30,7 @@ const PIN_KEY = "mazaj-waiter-pin";
 const TXT = {
   en: { title: "Waiter", pin: "Register PIN", connect: "Connect", wrong: "Wrong PIN", offline: "Register not reachable. Is it open on the same Wi-Fi?", table: "Table number", tableReq: "Enter the table number", note: "Note for the kitchen (optional)", send: "Send to register", sent: "Order sent to register", newOrder: "New order", print: "Print ticket", logout: "Disconnect", cart: "Order", noMenu: "Waiting for the register menu…", sending: "Sending…", orders: "Orders", noOrders: "No orders waiting at the register", modify: "Modify", reqCancel: "Request cancel", reason: "Reason for cancelling?", pendingCancel: "Waiting for register approval", update: "Send update", updated: "Update sent to register", editing: "Editing order", stopEdit: "Stop editing", gone: "This order was already handled by the register." },
   fr: { title: "Serveur", pin: "PIN de la caisse", connect: "Connecter", wrong: "PIN incorrect", offline: "Caisse injoignable. Est-elle ouverte sur le même Wi-Fi ?", table: "Numéro de table", tableReq: "Saisissez le numéro de table", note: "Note pour la cuisine (facultatif)", send: "Envoyer à la caisse", sent: "Commande envoyée à la caisse", newOrder: "Nouvelle commande", print: "Imprimer le ticket", logout: "Déconnecter", cart: "Commande", noMenu: "En attente du menu de la caisse…", sending: "Envoi…", orders: "Commandes", noOrders: "Aucune commande en attente à la caisse", modify: "Modifier", reqCancel: "Demander l'annulation", reason: "Motif de l'annulation ?", pendingCancel: "En attente de validation de la caisse", update: "Envoyer la modification", updated: "Modification envoyée à la caisse", editing: "Modification de commande", stopEdit: "Arrêter", gone: "Cette commande a déjà été traitée par la caisse." },
-  ar: { title: "النادل", pin: "رمز الصندوق", connect: "اتصال", wrong: "رمز خاطئ", offline: "الصندوق غير متاح. هل هو مفتوح على نفس الواي فاي؟", table: "رقم الطاولة", tableReq: "أدخل رقم الطاولة", note: "ملاحظة للمطبخ (اختياري)", send: "إرسال إلى الصندوق", sent: "تم إرسال الطلب إلى الصندوق", newOrder: "طلب جديد", print: "طباعة التذكرة", logout: "قطع الاتصال", cart: "الطلب", noMenu: "في انتظار قائمة الصندوق…", sending: "جارٍ الإرسال…", orders: "الطلبات", noOrders: "لا توجد طلبات في انتظار الصندوق", modify: "تعديل", reqCancel: "طلب إلغاء", reason: "سبب الإلغاء؟", pendingCancel: "في انتظار موافقة الصندوق", update: "إرسال التعديل", updated: "تم إرسال التعديل إلى الصندوق", editing: "تعديل الطلب", stopEdit: "إيقاف", gone: "تمت معالجة هذا الطلب من قبل الصندوق." },
+  ar: { title: "النادل", pin: "رمز الصندوق", connect: "اتصال", wrong: "رمز خاطئ", offline: "الصندوق غير متاح. هل هو مفتوح على نفس الواي فاي؟", table: "رقم الطاولة", tableReq: "أدخل رقم الطاولة", note: "ملاحظة للمطبخ (اختياري)", send: "إرسال إلى الصندوق", send: "تم إرسال الطلب إلى الصندوق", newOrder: "طلب جديد", print: "طباعة التذكرة", logout: "قطع الاتصال", cart: "الطلب", noMenu: "في انتظار قائمة الصندوق…", sending: "جارٍ الإرسال…", orders: "الطلبات", noOrders: "لا توجد طلبات في انتظار الصندوق", modify: "تعديل", reqCancel: "طلب إلغاء", reason: "سبب الإلغاء؟", pendingCancel: "في انتظار موافقة الصندوق", update: "إرسال التعديل", updated: "تم إرسال التعديل إلى الصندوق", editing: "تعديل الطلب", stopEdit: "إيقاف", gone: "تمت معالجة هذا الطلب من قبل الصندوق." },
 };
 
 function Waiter() {
@@ -54,6 +55,8 @@ function Waiter() {
   const [orders, setOrders] = useState<WaiterOrder[]>([]);
   const [showOrders, setShowOrders] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [renew, setRenew] = useState(false);
+  const [renewTable, setRenewTable] = useState("");
 
   useEffect(() => { setPin(localStorage.getItem(PIN_KEY) ?? ""); }, []);
 
@@ -76,12 +79,12 @@ function Waiter() {
   }, [pin, loadMenu]);
 
   const loadOrders = useCallback(async (p: string) => {
-    try { const r = await relay<{ orders: WaiterOrder[] }>({ action: "list", pin: p }); if (r.orders) setOrders(r.orders); } catch { /* offline */ }
+    try { const r = await relay<{ order: WaiterOrder[] }>({ action: "list", pin: p }); if (r.orders) setOrders(r.orders); } catch { /* offline */ }
   }, []);
   useEffect(() => {
     if (!pin) return;
     loadOrders(pin);
-    const id = setInterval(() => loadOrders(pin), 5000);
+    const id = setInterval(() => loadOrdersYhpin), 5000);
     return () => clearInterval(id);
   }, [pin, loadOrders]);
   const startEdit = (o: WaiterOrder) => {
@@ -143,12 +146,13 @@ function Waiter() {
     <div className="flex min-h-dvh flex-col bg-background pb-[calc(6rem+env(safe-area-inset-bottom))] text-foreground">
       <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-border bg-card px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
-          <img src={logoAsset.url} alt="MAZAJ" className="h-10 w-10 rounded-xl object-cover" />
+          <img src={logoAsset.url} alt="MAZAJ Coffee Shop" className="h-10 w-10 rounded-xl object-cover" />
           <h1 className="truncate font-display text-lg font-extrabold">{w.title}</h1>
         </div>
         <div className="flex items-center gap-1">
           <LangBar />
           <ThemeToggle />
+          <button onClick={() => { setRenewTable(""); setRenew(true); }} aria-label="Mazaj game" title="Mazaj game" className="grid h-11 w-11 place-items-center rounded-xl bg-accent text-accent-foreground"><Sparkles size={18} /></button>
           <button onClick={() => setShowOrders(true)} aria-label={w.orders} title={w.orders} className="relative grid h-11 w-11 place-items-center rounded-xl bg-accent text-accent-foreground"><ClipboardList size={18} />{orders.length > 0 && <span className="absolute -end-1 -top-1 min-w-5 rounded-full bg-primary px-1 text-xs leading-5 text-primary-foreground">{orders.length}</span>}</button>
           <button onClick={() => { localStorage.removeItem(PIN_KEY); setPin(""); setMenu(null); }} aria-label={w.logout} title={w.logout} className="grid h-11 w-11 place-items-center rounded-xl bg-muted"><LogOut size={18} /></button>
         </div>
@@ -191,7 +195,7 @@ function Waiter() {
       {open && (
         <div className="fixed inset-0 z-40 flex items-end bg-foreground/40" onClick={() => setOpen(false)}>
           <div className="max-h-[90dvh] w-full space-y-3 overflow-y-auto overscroll-contain rounded-t-3xl bg-card p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="font-display text-xl font-extrabold">{w.cart}</h2>
               <button onClick={() => setOpen(false)} aria-label="Close" className="grid h-11 w-11 place-items-center rounded-xl bg-muted"><X /></button>
             </div>
@@ -241,12 +245,30 @@ function Waiter() {
                   <p className="mt-2 rounded-lg bg-destructive/10 p-2 text-center text-sm font-bold text-destructive">{w.pendingCancel}</p>
                 ) : (
                   <div className="mt-2 flex gap-2">
-                    <button onClick={() => startEdit(o)} className="flex h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-accent font-bold text-accent-foreground"><Pencil size={16} />{w.modify}</button>
-                    <button onClick={() => requestCancel(o)} className="flex h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-destructive/10 font-bold text-destructive"><Ban size={16} />{w.reqCancel}</button>
+                    <button onClick={() => startEdit(o)} className="flex h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-accent font-bold text-accent-foreground"><Pencil size={16} /><span className="ms-1">{w.modify}</span></button>
+                    <button onClick={() => requestCancel(o)} className="flex h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-destructive/10 font-bold text-destructive"><Ban size={16} /><span className="ms-1">{w.reqCancel}</span></button>
                   </div>
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {renew && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/50 p-4" onClick={() => setRenew(false)}>
+          <div className="w-full max-w-sm space-y-3 rounded-3xl bg-card p-6 text-center shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-display text-2xl font-black">{{ ar: "تجديد لعبة مزاج", fr: "Renouveler le jeu Mazaj", en: "Renew Mazaj game" }[lang]}</h2>
+            <input inputMode="numeric" value={renewTable} onChange={(e) => setRenewTable(e.target.value)} placeholder={w.table} className="h-12 w-full rounded-xl border border-input bg-background px-3 text-center text-lg font-bold" />
+            {renewTable.trim() && (
+              <GameQR
+                key={renewTable}
+                table={renewTable.trim()}
+                items={orders.filter((o) => String(o.table) === renewTable.trim()).flatMap((o) => o.lines.map((l) => l.name.fr))}
+                lang={lang}
+              />
+            )}
+            <button onClick={() => setRenew(false)} className="h-12 w-full rounded-xl bg-muted font-bold">OK</button>
           </div>
         </div>
       )}
@@ -258,6 +280,7 @@ function Waiter() {
             <p className="font-display text-xl font-extrabold">{sent.table ? `${w.table}: ${sent.table}` : t.takeaway}</p>
             <ul className="text-start">{sent.lines.map((l) => <li key={l.id} className="flex justify-between"><span>{l.qty} × {l.name[lang]}</span><span>{money(l.price * l.qty, cur)}</span></li>)}</ul>
             <div className="flex justify-between border-t border-border pt-2 text-xl font-black"><span>{t.total}</span><span>{money(sent.total, cur)}</span></div>
+            {sent.table && <GameQR table={String(sent.table)} items={sent.lines.map((l) => l.name.fr)} lang={lang} />}
             <button onClick={() => window.print()} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-muted font-bold"><Printer size={18} />{w.print}</button>
             <button onClick={() => setSent(null)} className="h-14 w-full rounded-xl bg-primary text-lg font-extrabold text-primary-foreground">{w.newOrder}</button>
           </div>
