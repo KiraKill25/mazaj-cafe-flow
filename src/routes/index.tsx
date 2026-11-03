@@ -201,6 +201,7 @@ function Register() {
           <img src={logoAsset.url} alt="MAZAJ Coffee Shop" className="h-11 w-11 shrink-0 rounded-xl border border-border object-cover" />
           <h1 className="truncate font-display text-xl font-extrabold">MAZAJ <span className="font-bold text-muted-foreground">· {t.register}</span></h1>
           <span className="hidden rounded-lg bg-accent px-3 py-1 text-sm font-bold text-accent-foreground sm:inline">{t.nextOrder} {fmtOrder(orderNum)}</span>
+          {session && <Link to="/cash" className="hidden rounded-lg bg-success/15 px-3 py-1 text-sm font-bold text-success xl:inline">● {c.opened} {fmtDateTime(session.openedAt, pos.lang)} · {c.float}: {money(session.float, pos.currency)}</Link>}
         </div>
         <div className="flex items-center gap-2">
           <LangBar />
