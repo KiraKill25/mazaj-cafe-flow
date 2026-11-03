@@ -29,6 +29,7 @@ const download = (name: string, text: string, type: string) => {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 const stamp = () => new Date().toISOString().slice(0, 10);
+const ZX = { en: { exp: "All expenses", net: "Net result" }, fr: { exp: "Total charges", net: "Résultat net" }, ar: { exp: "مجموع المصاريف", net: "صافي النتيجة" } };
 const BK = {
   en: { title: "Save a backup now?", body: "The shift is closed. Save a copy of all your data to this PC.", yes: "Save backup", no: "Not now" },
   fr: { title: "Sauvegarder maintenant ?", body: "La caisse est fermée. Enregistrez une copie de toutes vos données sur ce PC.", yes: "Sauvegarder", no: "Plus tard" },
@@ -181,10 +182,15 @@ function Cash() {
               <div className="row big"><span>{z.expected}</span><span>{money(r.expected, cur)}</span></div>
               <div className="row"><span>{z.counted}</span><span>{money(printed.counted ?? 0, cur)}</span></div>
               <div className="row big"><span>{z.diff}</span><span>{signed(r.diff ?? 0)}</span></div>
+              {r.drawerOut.length > 0 && <><hr />{r.drawerOut.map((e) => <div key={e.id} className="row"><span>− {e.label}</span><span>{money(e.amount, cur)}</span></div>)}</>}
               <hr />
+              <div className="row"><span>{z.cashSales}</span><span>{money(r.cash, cur)}</span></div>
               <div className="row"><span>{z.cardSales}</span><span>{money(r.card, cur)}</span></div>
               <div className="row big"><span>{z.gained}</span><span>{money(r.revenue, cur)}</span></div>
               <div className="row"><span>{t.orders}</span><span>{r.orders}</span></div>
+              <div className="row"><span>{z.cancelled}</span><span>{r.cancelledCount} ({money(r.cancelledTotal, cur)})</span></div>
+              <div className="row"><span>{ZX[pos.lang].exp}</span><span>{money(r.expensesTotal, cur)}</span></div>
+              <div className="row big"><span>{ZX[pos.lang].net}</span><span>{money(r.net, cur)}</span></div>
             </div>
           </div>
         );
