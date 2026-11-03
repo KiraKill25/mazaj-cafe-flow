@@ -7,6 +7,6 @@ describe("mood combos", () => {
     for (const m of MOODS) expect(moodItems(m, MENU_ITEMS).length).toBe(m.keys.length);
   });
   it("Mazaj Matin totals 1650 DA", () => {
-    expect(moodItems(MOODS[0], MENU_ITEMS).reduce((s, i) => s + i.price, 0)).toBe(1650);
+    expect(moodItems(MOODS[0]!, MENU_ITEMS).reduce((s, i) => s + i.price, 0)).toBe(1650);
   });
 });

@@ -26,7 +26,7 @@ export function MoodPicker({ items, lang, currency, onPick }: { items: Item[]; l
               <h2 className="flex-1 text-xl font-extrabold">{L.btn[lang]}</h2>
               <button onClick={() => setOpen(false)} aria-label="Close" className="grid h-10 w-10 place-items-center rounded-lg bg-muted"><X size={18} /></button>
             </div>
-            <button disabled={!choices.length} onClick={() => pick(choices[Math.floor(Math.random() * choices.length)].list)} className="mb-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent font-bold text-accent-foreground disabled:opacity-40">
+            <button disabled={!choices.length} onClick={() => { const c = choices[Math.floor(Math.random() * choices.length)]; if (c) pick(c.list); }} className="mb-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent font-bold text-accent-foreground disabled:opacity-40">
               <Shuffle size={18} />{L.surprise[lang]}
             </button>
             <div className="space-y-2">
