@@ -10,6 +10,7 @@ import { Splash } from "@/components/Splash";
 import { pickFortune, THANKS } from "@/lib/fortunes";
 import { newPin, useWaiterLink, type WaiterOrder } from "@/lib/waiterLink";
 import { QRCodeSVG } from "qrcode.react";
+import { MoodPicker } from "@/components/MoodPicker";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -235,12 +236,13 @@ function Register() {
       )}
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         <main className="flex min-h-0 flex-1 flex-col">
-          <div className="px-4 pt-3">
-            <div className="relative">
+          <div className="flex gap-2 px-4 pt-3">
+            <div className="relative flex-1">
               <Search className="pointer-events-none absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
               <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={P.search} className="h-12 w-full rounded-xl border border-input bg-card ps-10 pe-10 font-semibold" />
               {q && <button onClick={() => setQ("")} aria-label="Clear" className="absolute end-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg bg-muted"><X size={16} /></button>}
             </div>
+            <MoodPicker items={pos.items} lang={pos.lang} currency={pos.currency} onPick={(list) => list.forEach(add)} />
           </div>
           <div className="flex gap-2 overflow-x-auto px-4 py-3">
             {[{ id: "all", label: t.all }, ...usedCats.map((c) => ({ id: c.id, label: c.name[pos.lang] }))].map((c) => (

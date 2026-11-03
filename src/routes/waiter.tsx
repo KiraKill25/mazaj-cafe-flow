@@ -7,6 +7,7 @@ import { LangBar, useDir } from "@/components/LangBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { relay, type WaiterOrder } from "@/lib/waiterLink";
 import { GameQR } from "@/components/GameQR";
+import { MoodPicker } from "@/components/MoodPicker";
 
 export const Route = createFileRoute("/waiter")({
   ssr: false,
@@ -159,12 +160,13 @@ function Waiter() {
       </header>
       {editId && <div className="flex items-center gap-2 bg-accent px-4 py-2 font-bold text-accent-foreground"><Pencil size={16} /><span className="flex-1">{w.editing}</span><button onClick={stopEdit} className="h-9 rounded-lg bg-background/30 px-3 text-sm">{w.stopEdit}</button></div>}
       {err && <p className="bg-destructive/10 px-4 py-2 text-center text-sm font-bold text-destructive">{err}</p>}
-      <div className="px-3 pt-3">
-        <div className="relative">
+      <div className="flex gap-2 px-3 pt-3">
+        <div className="relative flex-1">
           <Search className="pointer-events-none absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={{ en: "Search the menu…", fr: "Rechercher dans le menu…", ar: "ابحث في القائمة…" }[lang]} className="h-12 w-full rounded-xl border border-input bg-card ps-10 pe-10 font-semibold" />
           {q && <button onClick={() => setQ("")} aria-label="Clear" className="absolute end-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg bg-muted"><X size={16} /></button>}
         </div>
+        <MoodPicker items={menu?.items ?? []} lang={lang} currency={cur} onPick={(list) => list.forEach(add)} />
       </div>
       <div className="flex gap-2 overflow-x-auto px-3 py-3">
         {[{ id: "all", label: t.all }, ...used.map((c) => ({ id: c.id, label: c.name[lang] }))].map((c) => (
