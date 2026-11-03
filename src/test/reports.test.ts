@@ -34,3 +34,34 @@ describe("summarizeExpenses", () => {
     expect(r.byCat).toEqual([["salaries", 800], ["rent", 550]]);
   });
 });
+
+import { sessionTotals, parseAmount } from "@/lib/pos";
+describe("register closing", () => {
+  it("year starts on 1 January", () => {
+    expect(periodStart("year", new Date(2026, 9, 14))).toBe(new Date(2026, 0, 1).getTime());
+  });
+  it("expected cash = float + cash sales − drawer payouts, cancelled orders ignored", () => {
+    const line = [{ id: "a", name: { en: "A", fr: "A", ar: "A" }, price: 1, qty: 1 }];
+    const r = sessionTotals({
+      sales: [
+        { num: 1, at: 110, type: "dineIn", method: "cash", total: 350, lines: line },
+        { num: 2, at: 120, type: "dineIn", method: "card", total: 2500, lines: line },
+        { num: 3, at: 130, type: "takeaway", method: "cash", total: 500, lines: line, cancelled: { at: 140 } },
+      ],
+      expenses: [
+        { id: "e1", at: 150, category: "purchases", label: "Lait", amount: 200, fromDrawer: true },
+        { id: "e2", at: 160, category: "rent", label: "Loyer", amount: 1000 },
+      ],
+    }, { id: "s", openedAt: 100, float: 10000, closedAt: 200, counted: 10100 });
+    expect(r.expected).toBe(10150);
+    expect(r.diff).toBe(-50);
+    expect(r.revenue).toBe(2850);
+    expect(r.cancelledCount).toBe(1);
+    expect(r.expensesTotal).toBe(1200);
+    expect(r.net).toBe(1650);
+  });
+  it("amounts typed with comma or spaces parse exactly", () => {
+    expect(parseAmount("1 500,50")).toBe(1500.5);
+    expect(parseAmount("0.1") + parseAmount("0.2")).toBeCloseTo(0.3);
+  });
+});

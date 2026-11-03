@@ -2,7 +2,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Download, Upload } from "lucide-react";
-import { CX, TX, fmtDateTime, money, openSession, replacePos, sessionTotals, setPos, toCsv, usePos, type PosState, type Session } from "@/lib/pos";
+import { CX, TX, fmtDateTime, money, openSession, parseAmount, replacePos, sessionTotals, setPos, toCsv, usePos, type PosState, type Session } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { PinGate } from "@/components/PinGate";
 
@@ -55,7 +55,7 @@ function Cash() {
 
   const close = () => {
     if (!sess) return;
-    const n = parseFloat(counted.replace(",", "."));
+    const n = parseAmount(counted);
     if (!(n >= 0)) return;
     const closed = { ...sess, closedAt: Date.now(), counted: n };
     setPos((s) => ({ ...s, sessions: s.sessions.map((x) => (x.id === sess.id ? closed : x)) }));
@@ -99,7 +99,7 @@ function Cash() {
   const btn = "flex h-12 w-full items-center justify-center gap-2 rounded-xl font-bold";
 
   const tot = sess ? sessionTotals(pos, sess) : null;
-  const n = parseFloat(counted.replace(",", "."));
+  const n = parseAmount(counted);
   const liveDiff = tot && n >= 0 ? n - tot.expected : null;
   const past = [...(pos.sessions ?? [])].filter((s) => s.closedAt).reverse();
 
@@ -126,6 +126,8 @@ function Cash() {
                   {row(`= ${c.expected}`, money(tot.expected, cur), "text-lg")}
                   {row(c.cardSales, money(tot.card, cur), "text-muted-foreground")}
                   {row(`${c.gained} (${tot.orders} ${t.orders})`, money(tot.revenue, cur))}
+                  {row(`${c.cancelled}`, `${tot.cancelledCount} (${money(tot.cancelledTotal, cur)})`, "text-muted-foreground")}
+                  {row(ZX[pos.lang].net, money(tot.net, cur))}
                 </div>
                 <label className="block text-sm font-bold text-muted-foreground">{c.counted} ({cur})</label>
                 <input inputMode="decimal" value={counted} onChange={(e) => setCounted(e.target.value)} className="h-14 w-full rounded-xl border border-input bg-background px-4 text-2xl font-bold" />
