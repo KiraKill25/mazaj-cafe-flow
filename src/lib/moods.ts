@@ -44,6 +44,6 @@ export const MOODS: Mood[] = [
 /** Resolve a mood's items from the current menu (skips missing or out-of-stock items). */
 export function moodItems(mood: Mood, items: Item[]): Item[] {
   return mood.keys
-    .map((k) => items.find((i) => i.image === `seed:${k}` && !i.outOfStock))
+    .map((k) => items.find((i) => !i.outOfStock && (i.image === `seed:${k}` || i.image === `/menu/${k}.jpg` || i.image.endsWith(`/menu/${k}.jpg`))))
     .filter((i): i is Item => !!i);
 }

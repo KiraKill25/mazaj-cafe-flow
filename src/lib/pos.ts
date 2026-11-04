@@ -89,6 +89,11 @@ function load(): PosState {
   return state!;
 }
 
+/** Factory reset: back to a brand-new install (keeps only the display language). */
+export function resetToFactory() {
+  setPos((s) => ({ ...seed(), lang: s.lang }));
+}
+
 /** Replace the whole state (used by backup restore). */
 export function replacePos(next: Partial<PosState>) {
   setPos(() => ({ ...seed(), ...next }));

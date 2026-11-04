@@ -172,7 +172,7 @@ function Waiter() {
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={{ en: "Search the menu…", fr: "Rechercher dans le menu…", ar: "ابحث في القائمة…" }[lang]} className="h-12 w-full rounded-xl border border-input bg-card ps-10 pe-10 font-semibold" />
           {q && <button onClick={() => setQ("")} aria-label="Clear" className="absolute end-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg bg-muted"><X size={16} /></button>}
         </div>
-        <MoodPicker items={menu?.items ?? []} lang={lang} currency={cur} onPick={(list) => list.forEach(add)} />
+        <MoodPicker items={menu?.items ?? []} lang={lang} currency={cur} onPick={(list) => { list.forEach(add); if (list.length) setOpen(true); }} />
       </div>
       <div className="flex gap-2 overflow-x-auto px-3 py-3">
         {[{ id: "all", label: t.all }, ...used.map((c) => ({ id: c.id, label: c.name[lang] }))].map((c) => (
