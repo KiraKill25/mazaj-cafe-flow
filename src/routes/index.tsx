@@ -28,7 +28,7 @@ export const Route = createFileRoute("/")({
 
 type Line = { item: Item; qty: number };
 type OrderType = "dineIn" | "takeaway";
-type Done = { num: number; type: OrderType; lines: Line[]; total: number; method: "cash" | "card"; received?: number | undefined; at: number; lang: Lang; table?: string | undefined; receipt?: boolean; kitchen?: boolean; note?: string | undefined };
+type Done = { num: number; type: OrderType; lines: Line[]; total: number; method: "cash" | "card"; received?: number | undefined; at: number; lang: Lang; table?: string | undefined; receipt?: boolean; kitchen?: boolean; note?: string | undefined; waiter?: string | undefined };
 
 function Register() {
   useDir();
@@ -78,8 +78,8 @@ function Register() {
   }[pos.lang];
   const toSaleLines = (ls: Line[]): SaleLine[] => ls.map((l) => ({ id: l.item.id, name: l.item.name, price: l.item.price, qty: l.qty }));
   const toCart = (ls: SaleLine[]): Line[] => ls.map((l) => ({ qty: l.qty, item: pos.items.find((i) => i.id === l.id) ?? ({ id: l.id, name: l.name, price: l.price, category: "", image: "", outOfStock: false } as Item) }));
-  const kitchenOnly = (lines: SaleLine[], table?: string, note?: string, ty: OrderType = "dineIn") =>
-    setPrinted({ num: 0, type: ty, lines: toCart(lines), total: linesTotal(lines), method: "cash", at: Date.now(), lang: pos.lang, table, receipt: false, kitchen: true, note });
+  const kitchenOnly = (lines: SaleLine[], table?: string, note?: string, ty: OrderType = "dineIn", waiter?: string) =>
+    setPrinted({ num: 0, type: ty, lines: toCart(lines), total: linesTotal(lines), method: "cash", at: Date.now(), lang: pos.lang, table, receipt: false, kitchen: true, note, waiter });
   /** Adds lines to the open bill of `table` (creating it) and returns the new items to send to the kitchen. */
   const addToTab = (table: string, lines: SaleLine[]) =>
     setPos((s) => {
@@ -158,7 +158,7 @@ function Register() {
   const confirm = () => {
     const at = Date.now();
     const table = curTab?.table ?? fromWaiter?.table;
-    const done: Done = { num: orderNum, type, lines: cart, total, method: pay!, received: pay === "cash" ? rec : undefined, at, lang: pos.lang, table, receipt: printRec, kitchen: printKit };
+    const done: Done = { num: orderNum, type, lines: cart, total, method: pay!, received: pay === "cash" ? rec : undefined, at, lang: pos.lang, table, receipt: printRec, kitchen: printKit, waiter: fromWaiter?.waiter };
     if (fromWaiter) { void link.done(fromWaiter.id); setFromWaiter(null); }
     if (curTab) { setPos((s) => ({ ...s, tabs: (s.tabs ?? []).filter((x) => x.id !== curTab.id) })); setTabId(null); }
     setPos((s) => ({ ...s, nextOrder: currentOrderNum(s, at) + 1, orderDay: dayKey(at), sales: [...(s.sales ?? []), { num: currentOrderNum(s, at), at, type, method: pay!, total, table, lines: cart.map((l) => ({ id: l.item.id, name: l.item.name, price: l.item.price, qty: l.qty })) }] }));
@@ -180,6 +180,28 @@ function Register() {
   }, []);
 
   const [showOrders, setShowOrders] = useState(false);
+  // Keyboard shortcuts: F1/F2 previous/next category, Space = pay cash, Enter = confirm, Esc = close / clear cart.
+  const keyRef = useRef<(e: KeyboardEvent) => void>(() => undefined);
+  keyRef.current = (e: KeyboardEvent) => {
+    const el = e.target as HTMLElement | null;
+    const typing = !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+    const modal = showWaiter || showTabs || showOrders || !session;
+    if (e.key === "F1" || e.key === "F2") {
+      e.preventDefault();
+      if (modal || pay) return;
+      const ids = ["all", ...usedCats.map((c) => c.id)];
+      const i = Math.max(0, ids.indexOf(q ? "all" : cat));
+      setQ(""); setCat(ids[(i + (e.key === "F2" ? 1 : ids.length - 1)) % ids.length]!);
+    } else if (e.key === "Escape") {
+      if (pay) { setPay(null); setReceived(""); }
+      else if (!modal && cart.length && !typing && window.confirm({ en: "Clear the cart?", fr: "Vider le panier ?", ar: "إفراغ السلة؟" }[pos.lang])) { setCart([]); setTabId(null); setFromWaiter(null); }
+    } else if (e.key === "Enter" && pay) {
+      if (pay === "card" || rec >= total) { e.preventDefault(); confirm(); }
+    } else if (e.key === " " && !typing && !pay && !modal && cart.length) {
+      e.preventDefault(); setPay("cash");
+    }
+  };
+  useEffect(() => { const h = (e: KeyboardEvent) => keyRef.current(e); window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h); }, []);
   const L = {
     en: { title: "Today's orders", none: "No orders yet today", reprint: "Reprint", confirm: "Cancel this order?", reason: "Reason (optional)" },
     fr: { title: "Commandes du jour", none: "Aucune commande aujourd'hui", reprint: "Réimprimer", confirm: "Annuler cette commande ?", reason: "Motif (facultatif)" },
@@ -218,8 +240,8 @@ function Register() {
       {alertOrder && (
         <div role="alert" className="flex items-center gap-3 bg-success px-4 py-3 text-success-foreground">
           <Smartphone className="shrink-0 animate-bounce" />
-          <span className="min-w-0 flex-1 truncate text-lg font-extrabold">{P.newOrder} · {alertOrder.table ? `${W.table} ${alertOrder.table}` : t.takeaway} · {money(alertOrder.total, pos.currency)}</span>
-          <button onClick={() => { kitchenOnly(alertOrder.lines, alertOrder.table, alertOrder.note, alertOrder.type); }} className="flex h-11 items-center gap-2 rounded-lg bg-background px-3 font-bold text-foreground"><ChefHat size={18} /><span className="hidden sm:inline">{P.kitchenBtn}</span></button>
+          <span className="min-w-0 flex-1 truncate text-lg font-extrabold">{P.newOrder} · {alertOrder.table ? `${W.table} ${alertOrder.table}` : t.takeaway}{alertOrder.waiter ? ` · ${alertOrder.waiter}` : ""} · {money(alertOrder.total, pos.currency)}</span>
+          <button onClick={() => { kitchenOnly(alertOrder.lines, alertOrder.table, alertOrder.note, alertOrder.type, alertOrder.waiter); }} className="flex h-11 items-center gap-2 rounded-lg bg-background px-3 font-bold text-foreground"><ChefHat size={18} /><span className="hidden sm:inline">{P.kitchenBtn}</span></button>
           <button onClick={() => { setShowWaiter(true); setAlertOrder(null); }} className="h-11 rounded-lg bg-background/20 px-3 font-bold">{P.view}</button>
           <button onClick={() => setAlertOrder(null)} aria-label="Close" className="grid h-11 w-11 place-items-center rounded-lg bg-background/20"><X size={18} /></button>
         </div>
@@ -437,10 +459,11 @@ function Register() {
                     </div>
                   )}
                   <ul className="mt-1 text-sm">{o.lines.map((l) => <li key={l.id}>{l.qty} × {l.name[pos.lang]}</li>)}</ul>
+                  {o.waiter && <p className="mt-1 text-sm font-bold">👤 {o.waiter}</p>}
                   {o.note && <p className="mt-1 text-sm italic">“{o.note}”</p>}
                   <div className="mt-2 flex gap-2">
                     <button onClick={() => loadWaiter(o)} className="h-11 flex-1 rounded-lg bg-success px-3 font-bold text-success-foreground">{W.cashOut}</button>
-                    <button onClick={() => kitchenOnly(o.lines, o.table, o.note, o.type)} aria-label={P.kitchenBtn} title={P.kitchenBtn} className="flex h-11 items-center gap-1 rounded-lg bg-background px-3 font-bold"><ChefHat size={18} /></button>
+                    <button onClick={() => kitchenOnly(o.lines, o.table, o.note, o.type, o.waiter)} aria-label={P.kitchenBtn} title={P.kitchenBtn} className="flex h-11 items-center gap-1 rounded-lg bg-background px-3 font-bold"><ChefHat size={18} /></button>
                     {o.table && <button onClick={() => { addToTab(o.table!, o.lines); void link.done(o.id); }} title={P.addTab} className="flex h-11 items-center gap-1 rounded-lg bg-accent px-3 text-sm font-bold text-accent-foreground"><Utensils size={16} /><span className="hidden sm:inline">{P.addTab}</span></button>}
                     <button onClick={() => { if (window.confirm(W.confirmRemove)) void link.remove(o); }} className="h-11 rounded-lg bg-destructive/10 px-3 font-bold text-destructive">{W.remove}</button>
                   </div>
@@ -513,6 +536,7 @@ function PrintArea({ done, currency }: { done: Done; currency: string }) {
         <p className="c">{fmtDateTime(done.at, "fr")}</p>
         <hr />
         {done.lines.map((l) => <p className="big" key={l.item.id}>{l.qty} × {l.item.name.fr}</p>)}
+        {done.waiter && <p>SERVEUR : {done.waiter}</p>}
         {done.note && <p className="big">NOTE : {done.note}</p>}
         <hr />
       </div>}

@@ -12,7 +12,7 @@ const Menu = z.object({
   currency: z.string().max(8),
 });
 
-export type WaiterOrder = { id: string; at: number; type: "dineIn" | "takeaway"; table?: string | undefined; note?: string | undefined; lines: z.infer<typeof Line>[]; total: number; modifiedAt?: number | undefined; cancelRequest?: { at: number; reason?: string | undefined } | undefined };
+export type WaiterOrder = { id: string; at: number; type: "dineIn" | "takeaway"; table?: string | undefined; note?: string | undefined; lines: z.infer<typeof Line>[]; total: number; waiter?: string | undefined; modifiedAt?: number | undefined; cancelRequest?: { at: number; reason?: string | undefined } | undefined };
 type Relay = { key?: string; pin?: string; menu?: z.infer<typeof Menu>; menuAt: number; orders: WaiterOrder[] };
 const g = globalThis as unknown as { __mazajRelay?: Relay };
 const relay = (): Relay => (g.__mazajRelay ??= { menuAt: 0, orders: [] });
@@ -32,6 +32,7 @@ const Body = z.discriminatedUnion("action", [
     type: z.enum(["dineIn", "takeaway"]),
     table: z.string().trim().max(20).optional(),
     note: z.string().max(200).optional(),
+    waiter: z.string().trim().max(30).optional(),
     lines: z.array(Line).min(1).max(100),
   }),
 ]);
@@ -78,6 +79,7 @@ export const Route = createFileRoute("/api/public/waiter")({
           type: b.type,
           table: b.type === "dineIn" ? b.table : undefined,
           note: b.note?.trim() || undefined,
+          waiter: b.waiter || undefined,
           lines: b.lines,
           total: Math.round(b.lines.reduce((s, l) => s + l.price * l.qty, 0) * 100) / 100,
         };
