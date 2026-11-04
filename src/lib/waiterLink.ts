@@ -61,7 +61,7 @@ export function useWaiterLink(pos: PosState) {
         const prev = seen.current;
         if (prev) {
           const entries = diffOrders(prev, r.orders);
-          if (entries.some((e) => e.kind !== "modified")) chime();
+          if (entries.length) chime();
           if (entries.length) setPos((s) => ({ ...s, waiterLog: appendLog(s.waiterLog, ...entries) }));
         } else {
           // first poll this session: log orders the register has never seen
@@ -97,7 +97,7 @@ export function useWaiterLink(pos: PosState) {
   return { orders, online, done, decide, remove };
 }
 
-const summary = (o: WaiterOrder) => o.lines.map((l) => `${l.qty}× ${l.name.fr}`).join(", ");
+const summary = (o: WaiterOrder) => (o.waiter ? `[${o.waiter}] ` : "") + o.lines.map((l) => `${l.qty}× ${l.name.fr}`).join(", ");
 
 /** Compares two polls of waiter orders and returns the log entries for what changed. */
 export function diffOrders(prev: Map<string, WaiterOrder>, next: WaiterOrder[]): WaiterLogEntry[] {

@@ -42,6 +42,9 @@ function Waiter() {
   const w = TXT[lang];
   const [pin, setPin] = useState("");
   const [pinInput, setPinInput] = useState("");
+  const [waiterName, setWaiterName] = useState("");
+  useEffect(() => { setWaiterName(localStorage.getItem("mazaj-waiter-name") ?? ""); }, []);
+  const nameLbl = { en: "Your first name", fr: "Votre prénom", ar: "اسمك" }[pos.lang];
   const [err, setErr] = useState("");
   const [menu, setMenu] = useState<Menu | null>(null);
   const [cat, setCat] = useState("all");
@@ -102,7 +105,8 @@ function Waiter() {
 
   const connect = async () => {
     const p = pinInput.trim();
-    if (await loadMenu(p)) { localStorage.setItem(PIN_KEY, p); setPin(p); setPinInput(""); }
+    if (!waiterName.trim()) return;
+    if (await loadMenu(p)) { localStorage.setItem("mazaj-waiter-name", waiterName.trim()); localStorage.setItem(PIN_KEY, p); setPin(p); setPinInput(""); }
   };
 
   const total = useMemo(() => cart.reduce((s, l) => s + l.item.price * l.qty, 0), [cart]);
@@ -120,7 +124,7 @@ function Waiter() {
     if (type === "dineIn" && !table.trim()) { setErr(w.tableReq); return; }
     setBusy(true);
     try {
-      const r = await relay<{ order: WaiterOrder }>({ action: editId ? "update" : "order", ...(editId ? { id: editId } : {}), pin, type, table: type === "dineIn" ? table.trim() : undefined, note: note.trim() || undefined, lines: cart.map((l) => ({ id: l.item.id, name: l.item.name, price: l.item.price, qty: l.qty })) });
+      const r = await relay<{ order: WaiterOrder }>({ action: editId ? "update" : "order", ...(editId ? { id: editId } : {}), pin, type, table: type === "dineIn" ? table.trim() : undefined, note: note.trim() || undefined, ...(editId ? {} : { waiter: waiterName.trim() || undefined }), lines: cart.map((l) => ({ id: l.item.id, name: l.item.name, price: l.item.price, qty: l.qty })) });
       if (r.order) { setSent(r.order); setCart([]); setTable(""); setNote(""); setOpen(false); setErr(""); setEditId(null); loadOrders(pin); }
       else setErr(r.error === "wrong_pin" ? w.wrong : r.error === "table_required" ? w.tableReq : r.error === "not_found" ? w.gone : w.offline);
     } catch { setErr(w.offline); }
@@ -134,10 +138,12 @@ function Waiter() {
           <img src={logoAsset.url} alt="MAZAJ Coffee Shop" className="mx-auto h-20 w-20 rounded-2xl object-cover" />
           <h1 className="font-display text-2xl font-black">MAZAJ · {w.title}</h1>
           <div className="flex justify-center"><LangBar /></div>
+          <label className="block text-sm font-bold text-muted-foreground">{nameLbl}</label>
+          <input value={waiterName} maxLength={30} onChange={(e) => setWaiterName(e.target.value)} autoComplete="given-name" className="h-14 w-full rounded-xl border border-input bg-background text-center text-xl font-bold" />
           <label className="block text-sm font-bold text-muted-foreground">{w.pin}</label>
           <input inputMode="numeric" pattern="[0-9]*" autoComplete="one-time-code" maxLength={4} autoFocus value={pinInput} onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => e.key === "Enter" && connect()} className="h-16 w-full rounded-xl border border-input bg-background text-center text-3xl font-black tracking-[0.5em]" />
           {err && <p className="text-sm font-bold text-destructive">{err}</p>}
-          <button onClick={connect} disabled={pinInput.length !== 4} className="h-14 w-full rounded-xl bg-primary text-lg font-extrabold text-primary-foreground disabled:opacity-40">{w.connect}</button>
+          <button onClick={connect} disabled={pinInput.length !== 4 || !waiterName.trim()} className="h-14 w-full rounded-xl bg-primary text-lg font-extrabold text-primary-foreground disabled:opacity-40">{w.connect}</button>
         </div>
       </div>
     );
@@ -148,7 +154,7 @@ function Waiter() {
       <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-border bg-card px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
           <img src={logoAsset.url} alt="MAZAJ Coffee Shop" className="h-10 w-10 rounded-xl object-cover" />
-          <h1 className="truncate font-display text-lg font-extrabold">{w.title}</h1>
+          <h1 className="truncate font-display text-lg font-extrabold">{w.title}{waiterName && <span className="ms-1 text-sm text-muted-foreground">· {waiterName}</span>}</h1>
         </div>
         <div className="flex items-center gap-1">
           <LangBar />

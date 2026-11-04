@@ -8,7 +8,7 @@ export type Sale = { num: number; at: number; type: "dineIn" | "takeaway"; metho
 
 export type Expense = { id: string; at: number; category: string; label: string; amount: number; note?: string | undefined; fromDrawer?: boolean | undefined };
 
-export type Session = { id: string; openedAt: number; float: number; closedAt?: number | undefined; counted?: number | undefined };
+export type Session = { id: string; openedAt: number; float: number; closedAt?: number | undefined; counted?: number | undefined; denoms?: Record<string, number> | undefined };
 
 /** An open dine-in table bill kept until final checkout. */
 export type Tab = { id: string; table: string; openedAt: number; lines: SaleLine[] };
@@ -235,3 +235,8 @@ export function matchItem(item: { name: Record<Lang, string> }, q: string) {
   if (!n) return true;
   return (["en", "fr", "ar"] as const).some((l) => norm(item.name[l] ?? "").includes(n));
 }
+
+/** Algerian banknotes and coins used by the cash counter at closing. */
+export const DENOMS = [2000, 1000, 500, 200, 100, 50, 20, 10, 5] as const;
+/** Exact total of a bill/coin count, e.g. { "1000": 15 } → 15000. */
+export const denomTotal = (d: Record<string, number>) => DENOMS.reduce((s, v) => s + v * Math.max(0, Math.floor(d[String(v)] || 0)), 0);

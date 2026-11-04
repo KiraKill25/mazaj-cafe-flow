@@ -2,7 +2,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Download, Upload } from "lucide-react";
-import { CX, TX, fmtDateTime, money, openSession, parseAmount, replacePos, sessionTotals, setPos, toCsv, usePos, type PosState, type Session } from "@/lib/pos";
+import { CX, DENOMS, denomTotal, TX, fmtDateTime, money, openSession, parseAmount, replacePos, sessionTotals, setPos, toCsv, usePos, type PosState, type Session } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { PinGate } from "@/components/PinGate";
 
@@ -42,6 +42,15 @@ function Cash() {
   const c = CX[pos.lang];
   const sess = openSession(pos);
   const [counted, setCounted] = useState("");
+  const [denoms, setDenoms] = useState<Record<string, number>>({});
+  const [showCounter, setShowCounter] = useState(false);
+  const DX = { en: { counter: "Cash counter", notes: "Notes & coins", clear: "Reset" }, fr: { counter: "Compteur de caisse", notes: "Billets & pièces", clear: "Remettre à zéro" }, ar: { counter: "عدّاد الصندوق", notes: "الأوراق والقطع", clear: "تصفير" } }[pos.lang];
+  const setDenom = (v: number, raw: string) => {
+    const next = { ...denoms, [String(v)]: Math.max(0, parseInt(raw.replace(/\D/g, "")) || 0) };
+    setDenoms(next);
+    const sum = denomTotal(next);
+    setCounted(sum ? String(sum) : "");
+  };
   const [printed, setPrinted] = useState<Session | null>(null);
   const [askBackup, setAskBackup] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -57,9 +66,10 @@ function Cash() {
     if (!sess) return;
     const n = parseAmount(counted);
     if (!(n >= 0)) return;
-    const closed = { ...sess, closedAt: Date.now(), counted: n };
+    const used = Object.fromEntries(Object.entries(denoms).filter(([, q]) => q > 0));
+    const closed = { ...sess, closedAt: Date.now(), counted: n, denoms: showCounter && denomTotal(used) === n && Object.keys(used).length ? used : undefined };
     setPos((s) => ({ ...s, sessions: s.sessions.map((x) => (x.id === sess.id ? closed : x)) }));
-    setCounted("");
+    setCounted(""); setDenoms({}); setShowCounter(false);
     setPrinted(closed);
     setTimeout(() => setAskBackup(true), 800);
   };
@@ -129,6 +139,23 @@ function Cash() {
                   {row(`${c.cancelled}`, `${tot.cancelledCount} (${money(tot.cancelledTotal, cur)})`, "text-muted-foreground")}
                   {row(ZX[pos.lang].net, money(tot.net, cur))}
                 </div>
+                <button type="button" onClick={() => setShowCounter((v) => !v)} className="h-12 w-full rounded-xl bg-accent font-bold text-accent-foreground">🧮 {DX.counter}</button>
+                {showCounter && (
+                  <div className="space-y-2 rounded-xl border border-border bg-background p-3">
+                    <div className="text-sm font-bold text-muted-foreground">{DX.notes}</div>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      {DENOMS.map((v) => (
+                        <label key={v} className="flex items-center gap-2 rounded-lg bg-card p-2">
+                          <span className="w-14 shrink-0 text-end font-bold">{v}</span>
+                          <span className="text-muted-foreground">×</span>
+                          <input inputMode="numeric" value={denoms[String(v)] || ""} onChange={(e) => setDenom(v, e.target.value)} className="h-11 w-full min-w-0 rounded-lg border border-input bg-background px-2 text-center text-lg font-bold" />
+                          <span className="w-20 shrink-0 text-end text-sm text-muted-foreground">{money(v * (denoms[String(v)] || 0), cur)}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between font-extrabold"><button type="button" onClick={() => { setDenoms({}); setCounted(""); }} className="h-10 rounded-lg bg-muted px-3 text-sm">{DX.clear}</button><span className="text-lg">= {money(denomTotal(denoms), cur)}</span></div>
+                  </div>
+                )}
                 <label className="block text-sm font-bold text-muted-foreground">{c.counted} ({cur})</label>
                 <input inputMode="decimal" value={counted} onChange={(e) => setCounted(e.target.value)} className="h-14 w-full rounded-xl border border-input bg-background px-4 text-2xl font-bold" />
                 {liveDiff != null && row(c.diff, signed(liveDiff), `text-lg ${diffCls(liveDiff)}`)}
@@ -184,6 +211,7 @@ function Cash() {
               <div className="row big"><span>{z.expected}</span><span>{money(r.expected, cur)}</span></div>
               <div className="row"><span>{z.counted}</span><span>{money(printed.counted ?? 0, cur)}</span></div>
               <div className="row big"><span>{z.diff}</span><span>{signed(r.diff ?? 0)}</span></div>
+              {printed.denoms && <><hr />{DENOMS.filter((v) => printed.denoms![String(v)]).map((v) => <div key={v} className="row"><span>{printed.denoms![String(v)]} × {v}</span><span>{money(v * printed.denoms![String(v)]!, cur)}</span></div>)}</>}
               {r.drawerOut.length > 0 && <><hr />{r.drawerOut.map((e) => <div key={e.id} className="row"><span>− {e.label}</span><span>{money(e.amount, cur)}</span></div>)}</>}
               <hr />
               <div className="row"><span>{z.cashSales}</span><span>{money(r.cash, cur)}</span></div>
