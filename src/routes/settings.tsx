@@ -2,7 +2,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { ArrowLeft, Download, Upload } from "lucide-react";
-import { CX, TX, fmtDateTime, replacePos, setPos, toCsv, usePos, type PosState } from "@/lib/pos";
+import { CX, TX, fmtDateTime, replacePos, resetToFactory, setPos, toCsv, usePos, type PosState } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { PinGate } from "@/components/PinGate";
 
@@ -63,6 +63,23 @@ function Settings({ lock }: { lock: () => void }) {
     const ok = await saveFile(`MAZAJ-backup-${stamp()}.json`, JSON.stringify({ app: "mazaj-pos", version: 1, savedAt: Date.now(), data: pos }), "application/json");
     if (ok) setPos((s) => ({ ...s, lastBackup: Date.now() }));
   };
+  const RX = {
+    en: { btn: "Factory reset (erase everything)", backup: "A full backup will be saved first. Continue?", noBackup: "Backup was not saved — reset cancelled.", pin: "Enter the manager PIN to confirm the reset:", wrong: "Wrong PIN — reset cancelled.", confirm: "FINAL WARNING: all sales, register sessions, expenses, open tabs, order numbers, menu edits and the PIN (back to 1234) will be erased. Continue?", done: "The app has been reset." },
+    fr: { btn: "Réinitialisation complète (tout effacer)", backup: "Une sauvegarde complète va d'abord être enregistrée. Continuer ?", noBackup: "Sauvegarde non enregistrée — réinitialisation annulée.", pin: "Saisissez le PIN gérant pour confirmer la réinitialisation :", wrong: "PIN incorrect — réinitialisation annulée.", confirm: "DERNIER AVERTISSEMENT : ventes, clôtures, charges, notes de table, numéros de commande, modifications du menu et PIN (remis à 1234) seront effacés. Continuer ?", done: "L'application a été réinitialisée." },
+    ar: { btn: "إعادة ضبط المصنع (مسح كل شيء)", backup: "سيتم حفظ نسخة احتياطية كاملة أولاً. متابعة؟", noBackup: "لم يتم حفظ النسخة — أُلغيت إعادة الضبط.", pin: "أدخل رمز المدير لتأكيد إعادة الضبط:", wrong: "رمز خاطئ — أُلغيت إعادة الضبط.", confirm: "تحذير أخير: سيتم مسح المبيعات والجلسات والمصاريف والطاولات المفتوحة وأرقام الطلبات وتعديلات القائمة والرمز (يعود إلى 1234). متابعة؟", done: "تمت إعادة ضبط التطبيق." },
+  }[pos.lang];
+  const factoryReset = async () => {
+    if (!confirm(RX.backup)) return;
+    const ok = await saveFile(`MAZAJ-backup-avant-reinit-${stamp()}.json`, JSON.stringify({ app: "mazaj-pos", version: 1, savedAt: Date.now(), data: pos }), "application/json");
+    if (!ok) { alert(RX.noBackup); return; }
+    const p = prompt(RX.pin);
+    if (p === null) return;
+    if (p !== pos.pin) { alert(RX.wrong); return; }
+    if (!confirm(RX.confirm)) return;
+    resetToFactory();
+    alert(RX.done);
+    lock();
+  };
   const restore = async (f: File) => {
     try {
       const j = JSON.parse(await f.text());
@@ -120,6 +137,7 @@ function Settings({ lock }: { lock: () => void }) {
           </div>
           <button onClick={() => confirm(`${t.resetCounter}?`) && setPos((s) => ({ ...s, nextOrder: 1, orderDay: "" }))} className="h-12 w-full rounded-xl bg-muted font-bold">{t.resetCounter} (#001)</button>
           <button onClick={lock} className="h-12 w-full rounded-xl bg-muted font-bold">{t.lock}</button>
+          <button onClick={() => void factoryReset()} className="h-12 w-full rounded-xl bg-destructive font-bold text-destructive-foreground">{RX.btn}</button>
         </section>
       </div>
     </div>
