@@ -33,6 +33,7 @@ export function useWaiterLink(pos: PosState) {
   const [orders, setOrders] = useState<WaiterOrder[]>([]);
   const [online, setOnline] = useState(false);
   const seen = useRef<Map<string, WaiterOrder> | null>(null);
+  const acked = useRef<string[]>([]);
 
   useEffect(() => {
     if (!pos.linkKey || !pos.waiterPin) setPos((s) => ({ ...s, linkKey: s.linkKey || crypto.randomUUID(), waiterPin: s.waiterPin || newPin() }));
@@ -45,19 +46,23 @@ export function useWaiterLink(pos: PosState) {
       categories: pos.categories,
       items: pos.items.map((i) => ({ ...i, image: resolveImage(i.image) })),
     };
-    const send = () => relay({ action: "sync", key: pos.linkKey, pin: pos.waiterPin, menu }).then((r) => setOnline(!r.error)).catch(() => setOnline(false));
+    const onDuty = Object.fromEntries((pos.attendance ?? []).filter((a) => !a.out).map((a) => [a.name, a.in]));
+    const send = () => relay({ action: "sync", key: pos.linkKey, pin: pos.waiterPin, menu, staff: pos.staff ?? [], onDuty }).then((r) => setOnline(!r.error)).catch(() => setOnline(false));
     send();
     const id = setInterval(send, 30000);
     return () => clearInterval(id);
-  }, [pos.linkKey, pos.waiterPin, pos.items, pos.categories, pos.currency]);
+  }, [pos.linkKey, pos.waiterPin, pos.items, pos.categories, pos.currency, pos.staff, pos.attendance]);
 
   useEffect(() => {
     if (!pos.linkKey) return;
     let stop = false;
     const tick = async () => {
       try {
-        const r = await relay<{ orders: WaiterOrder[] }>({ action: "pull", key: pos.linkKey });
+        const ack = acked.current;
+        const r = await relay<{ orders: WaiterOrder[]; clocks?: ClockEvent[] }>({ action: "pull", key: pos.linkKey, ack });
         if (stop || !r.orders) return;
+        acked.current = (r.clocks ?? []).map((e) => e.id);
+        if (r.clocks?.length) setPos((s) => ({ ...s, attendance: r.clocks!.reduce(applyClock, s.attendance ?? []) }));
         const prev = seen.current;
         if (prev) {
           const entries = diffOrders(prev, r.orders);
