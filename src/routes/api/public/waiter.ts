@@ -13,13 +13,16 @@ const Menu = z.object({
 });
 
 export type WaiterOrder = { id: string; at: number; type: "dineIn" | "takeaway"; table?: string | undefined; note?: string | undefined; lines: z.infer<typeof Line>[]; total: number; waiter?: string | undefined; modifiedAt?: number | undefined; cancelRequest?: { at: number; reason?: string | undefined } | undefined };
-type Relay = { key?: string; pin?: string; menu?: z.infer<typeof Menu>; menuAt: number; orders: WaiterOrder[] };
+export type ClockEvent = { id: string; name: string; kind: "in" | "out"; at: number };
+type Relay = { key?: string; pin?: string; menu?: z.infer<typeof Menu>; menuAt: number; orders: WaiterOrder[]; staff?: string[]; onDuty?: Record<string, number>; clocks?: ClockEvent[] };
 const g = globalThis as unknown as { __mazajRelay?: Relay };
 const relay = (): Relay => (g.__mazajRelay ??= { menuAt: 0, orders: [] });
 
 const Body = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("sync"), key: z.string().min(16).max(64), pin: z.string().regex(/^\d{4}$/), menu: Menu.optional() }),
-  z.object({ action: z.literal("pull"), key: z.string().min(16).max(64) }),
+  z.object({ action: z.literal("sync"), key: z.string().min(16).max(64), pin: z.string().regex(/^\d{4}$/), menu: Menu.optional(), staff: z.array(z.string().max(30)).max(100).optional(), onDuty: z.record(z.string().max(30), z.number()).optional() }),
+  z.object({ action: z.literal("pull"), key: z.string().min(16).max(64), ack: z.array(z.string().max(64)).max(500).optional() }),
+  z.object({ action: z.literal("staff"), pin: z.string().max(8) }),
+  z.object({ action: z.literal("clock"), pin: z.string().max(8), name: z.string().trim().min(1).max(30), kind: z.enum(["in", "out"]) }),
   z.object({ action: z.literal("done"), key: z.string().min(16).max(64), id: z.string().max(64) }),
   z.object({ action: z.literal("decide"), key: z.string().min(16).max(64), id: z.string().max(64), approve: z.boolean() }),
   z.object({ action: z.literal("menu"), pin: z.string().max(8) }),
@@ -53,16 +56,39 @@ export const Route = createFileRoute("/api/public/waiter")({
           if (b.action === "sync") {
             r.pin = b.pin;
             if (b.menu) { r.menu = b.menu; r.menuAt = Date.now(); }
+            if (b.staff) r.staff = b.staff;
+            if (b.onDuty) {
+              // register is the authority; keep events it has not acknowledged yet
+              const d = { ...b.onDuty };
+              for (const e of r.clocks ?? []) { if (e.kind === "in") d[e.name] = e.at; else delete d[e.name]; }
+              r.onDuty = d;
+            }
             return json({ ok: true });
           }
           if (b.action === "done") r.orders = r.orders.filter((o) => o.id !== b.id);
           if (b.action === "decide") r.orders = b.approve ? r.orders.filter((o) => o.id !== b.id) : r.orders.map((o) => (o.id === b.id ? { ...o, cancelRequest: undefined } : o));
+          if (b.action === "pull") {
+            if (b.ack?.length) r.clocks = (r.clocks ?? []).filter((e) => !b.ack!.includes(e.id));
+            return json({ orders: r.orders, clocks: r.clocks ?? [] });
+          }
           return json({ orders: r.orders });
         }
         if (!r.pin) return json({ error: "register_offline" }, 503);
         if (b.pin !== r.pin) return json({ error: "wrong_pin" }, 401);
         if (b.action === "menu") return json({ menu: r.menu ?? null, menuAt: r.menuAt });
         if (b.action === "list") return json({ orders: r.orders });
+        if (b.action === "staff") return json({ staff: r.staff ?? [], onDuty: r.onDuty ?? {} });
+        if (b.action === "clock") {
+          if (!(r.staff ?? []).includes(b.name)) return json({ error: "unknown_staff" }, 404);
+          const on = r.onDuty ?? {};
+          if (b.kind === "in" && on[b.name]) return json({ staff: r.staff, onDuty: on });
+          if (b.kind === "out" && !on[b.name]) return json({ staff: r.staff, onDuty: on });
+          const e: ClockEvent = { id: crypto.randomUUID(), name: b.name, kind: b.kind, at: Date.now() };
+          r.clocks = [...(r.clocks ?? []), e].slice(-500);
+          if (b.kind === "in") on[b.name] = e.at; else delete on[b.name];
+          r.onDuty = on;
+          return json({ staff: r.staff, onDuty: on });
+        }
         if (b.action === "update" || b.action === "cancelReq") {
           const cur = r.orders.find((o) => o.id === b.id);
           if (!cur) return json({ error: "not_found" }, 404);

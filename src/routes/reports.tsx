@@ -2,9 +2,10 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Package , Wallet } from "lucide-react";
-import { type Lang, type Sale, TX, CX, fmtDateTime, setPos, fmtOrder, money, periodStart, summarize, summarizeExpenses, round2, usePos } from "@/lib/pos";
+import { type Lang, type Sale, TX, CX, fmtDateTime, setPos, fmtOrder, money, summarize, summarizeExpenses, round2, usePos } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { PinGate } from "@/components/PinGate";
+import { PeriodPicker, initialPeriod, periodRange } from "@/components/PeriodPicker";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({
@@ -22,14 +23,13 @@ export const Route = createFileRoute("/reports")({
   component: () => { useDir(); return <PinGate>{() => <Reports />}</PinGate>; },
 });
 
-type Period = "day" | "week" | "month" | "year";
-
 function Reports() {
   const pos = usePos();
   const t = TX[pos.lang];
-  const [period, setPeriod] = useState<Period>("day");
-  const r = summarize(pos.sales ?? [], periodStart(period));
-  const ex = summarizeExpenses(pos.expenses ?? [], periodStart(period));
+  const [pv, setPv] = useState(() => initialPeriod("day"));
+  const [from, to] = periodRange(pv);
+  const r = summarize(pos.sales ?? [], from, to);
+  const ex = summarizeExpenses(pos.expenses ?? [], from, to);
   const net = round2(r.revenue - ex.total);
   const N = { en: { exp: "Expenses", net: "Net result", year: "This year", canc: "Cancelled" }, fr: { exp: "Charges", net: "Résultat net", year: "Cette année", canc: "Annulées" }, ar: { exp: "المصاريف", net: "صافي النتيجة", year: "هذه السنة", canc: "ملغاة" } }[pos.lang];
   const c = CX[pos.lang];
@@ -38,7 +38,6 @@ function Reports() {
     if (reason === null) return;
     setPos((st) => ({ ...st, sales: st.sales.map((x) => (x.at === s.at && x.num === s.num ? { ...x, cancelled: { at: Date.now(), reason: reason.trim() || undefined } } : x)) }));
   };
-  const labels: Record<Period, string> = { day: t.today, week: t.week, month: t.month, year: N.year };
 
   const stat = (label: string, value: string, cls = "") => (
     <div className="rounded-2xl border border-border bg-card p-4">
@@ -62,11 +61,7 @@ function Reports() {
       </header>
 
       <div className="mx-auto max-w-6xl space-y-6 p-4">
-        <div className="flex gap-2 rounded-2xl bg-muted p-1 sm:w-fit">
-          {(["day", "week", "month", "year"] as const).map((p) => (
-            <button key={p} onClick={() => setPeriod(p)} className={`h-12 flex-1 rounded-xl px-3 sm:px-5 font-bold sm:flex-none ${period === p ? "bg-foreground text-background" : "text-muted-foreground"}`}>{labels[p]}</button>
-          ))}
-        </div>
+        <PeriodPicker value={pv} onChange={setPv} lang={pos.lang} />
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           {stat(t.revenue, money(r.revenue, pos.currency))}

@@ -39,7 +39,34 @@ export type PosState = {
   linkKey: string; // secret id of this register on the local Wi-Fi relay
   tabs: Tab[];
   waiterLog?: WaiterLogEntry[]; // audit trail of waiter orders (created, modified, cancel requested/approved/rejected)
+  staff?: string[]; // waiter names declared by the manager (used for clock-in/out)
+  attendance?: Shift[]; // waiter clock-in/out records
 };
+
+export type Shift = { id: string; name: string; in: number; out?: number | undefined };
+export type ClockEvent = { id: string; name: string; kind: "in" | "out"; at: number };
+/** Applies a waiter clock event to the attendance list (idempotent by event id). */
+export function applyClock(list: Shift[] | undefined, e: ClockEvent): Shift[] {
+  const l = list ?? [];
+  if (e.kind === "in") {
+    if (l.some((s) => s.id === e.id || (s.name === e.name && !s.out))) return l;
+    return [...l, { id: e.id, name: e.name, in: e.at }];
+  }
+  const open = [...l].reverse().find((s) => s.name === e.name && !s.out);
+  return open ? l.map((s) => (s === open ? { ...s, out: Math.max(e.at, s.in) } : s)) : l;
+}
+/** Milliseconds worked by shifts overlapping [from, to); open shifts count until now. */
+export function workedMs(shifts: Shift[], from = 0, to = Infinity, now = Date.now()) {
+  return shifts.reduce((a, s) => a + Math.max(0, Math.min(s.out ?? now, to) - Math.max(s.in, from)), 0);
+}
+export const fmtDuration = (ms: number) => { const m = Math.round(ms / 60000); return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}min`; };
+/** Range [start, end) of local days from "YYYY-MM-DD" strings (inclusive end day). */
+export function dayRange(from: string, to: string): [number, number] {
+  const a = new Date(from + "T00:00:00").getTime();
+  const b = new Date((to || from) + "T00:00:00");
+  b.setDate(b.getDate() + 1);
+  return a <= b.getTime() ? [a, b.getTime()] : [b.getTime() - 86400000, a + 86400000];
+}
 
 export type WaiterLogKind = "created" | "modified" | "cancelRequested" | "cancelApproved" | "cancelRejected" | "removed";
 export type WaiterLogEntry = { at: number; kind: WaiterLogKind; orderId: string; table?: string | undefined; total: number; detail?: string | undefined };
@@ -150,8 +177,8 @@ export function periodStart(period: "day" | "week" | "month" | "year", now = new
   return d.getTime();
 }
 
-export function summarize(sales: Sale[], from: number) {
-  const all = sales.filter((x) => x.at >= from);
+export function summarize(sales: Sale[], from: number, to = Infinity) {
+  const all = sales.filter((x) => x.at >= from && x.at < to);
   const s = all.filter((x) => !x.cancelled);
   const revenue = round2(s.reduce((a, x) => a + x.total, 0));
   const cash = round2(s.filter((x) => x.method === "cash").reduce((a, x) => a + x.total, 0));
@@ -164,8 +191,8 @@ export function summarize(sales: Sale[], from: number) {
 }
 
 /** Expenses since `from`, total and per-category breakdown (largest first). */
-export function summarizeExpenses(expenses: Expense[], from: number) {
-  const e = expenses.filter((x) => x.at >= from);
+export function summarizeExpenses(expenses: Expense[], from: number, to = Infinity) {
+  const e = expenses.filter((x) => x.at >= from && x.at < to);
   const byCat = new Map<string, number>();
   for (const x of e) byCat.set(x.category, round2((byCat.get(x.category) ?? 0) + x.amount));
   return { expenses: e, total: round2(e.reduce((a, x) => a + x.amount, 0)), byCat: [...byCat.entries()].sort((a, b) => b[1] - a[1]) };

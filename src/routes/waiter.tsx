@@ -64,6 +64,32 @@ function Waiter() {
 
   useEffect(() => { setPin(localStorage.getItem(PIN_KEY) ?? ""); }, []);
 
+  // Staff list (declared by the manager) and who is clocked in
+  const [staff, setStaff] = useState<string[]>([]);
+  const [onDuty, setOnDuty] = useState<Record<string, number>>({});
+  const [clockBusy, setClockBusy] = useState(false);
+  const loadStaff = useCallback(async (p: string) => {
+    try { const r = await relay<{ staff: string[]; onDuty: Record<string, number> }>({ action: "staff", pin: p }); if (r.staff) { setStaff(r.staff); setOnDuty(r.onDuty ?? {}); } } catch { /* offline */ }
+  }, []);
+  useEffect(() => { if (!pin && pinInput.length === 4) loadStaff(pinInput); }, [pin, pinInput, loadStaff]);
+  useEffect(() => {
+    if (!pin) return;
+    loadStaff(pin);
+    const id = setInterval(() => loadStaff(pin), 10000);
+    return () => clearInterval(id);
+  }, [pin, loadStaff]);
+  const C = { en: { in: "Clock in", out: "Clock out", since: "On duty since", off: "Not clocked in", confirm: "Clock out now?", pick: "Choose your name" }, fr: { in: "Pointer mon arrivée", out: "Pointer mon départ", since: "En service depuis", off: "Pas encore pointé", confirm: "Pointer votre départ maintenant ?", pick: "Choisissez votre prénom" }, ar: { in: "تسجيل الدخول", out: "تسجيل الخروج", since: "في الخدمة منذ", off: "لم تسجل الدخول بعد", confirm: "تسجيل الخروج الآن؟", pick: "اختر اسمك" } }[lang];
+  const clock = async (kind: "in" | "out") => {
+    if (kind === "out" && !window.confirm(C.confirm)) return;
+    setClockBusy(true);
+    try {
+      const r = await relay<{ onDuty: Record<string, number> }>({ action: "clock", pin, name: waiterName.trim(), kind });
+      if (r.onDuty) setOnDuty(r.onDuty); else setErr(w.offline);
+    } catch { setErr(w.offline); }
+    setClockBusy(false);
+  };
+  const dutySince = onDuty[waiterName.trim()];
+
   const loadMenu = useCallback(async (p: string) => {
     try {
       const r = await relay<{ menu: Menu | null }>({ action: "menu", pin: p });
@@ -138,12 +164,19 @@ function Waiter() {
           <img src={logoAsset.url} alt="MAZAJ Coffee Shop" className="mx-auto h-20 w-20 rounded-2xl object-cover" />
           <h1 className="font-display text-2xl font-black">MAZAJ · {w.title}</h1>
           <div className="flex justify-center"><LangBar /></div>
-          <label className="block text-sm font-bold text-muted-foreground">{nameLbl}</label>
-          <input value={waiterName} maxLength={30} onChange={(e) => setWaiterName(e.target.value)} autoComplete="given-name" className="h-14 w-full rounded-xl border border-input bg-background text-center text-xl font-bold" />
           <label className="block text-sm font-bold text-muted-foreground">{w.pin}</label>
           <input inputMode="numeric" pattern="[0-9]*" autoComplete="one-time-code" maxLength={4} autoFocus value={pinInput} onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => e.key === "Enter" && connect()} className="h-16 w-full rounded-xl border border-input bg-background text-center text-3xl font-black tracking-[0.5em]" />
+          <label className="block text-sm font-bold text-muted-foreground">{nameLbl}</label>
+          {staff.length > 0 ? (
+            <select value={staff.includes(waiterName) ? waiterName : ""} onChange={(e) => setWaiterName(e.target.value)} className="h-14 w-full rounded-xl border border-input bg-background text-center text-xl font-bold">
+              <option value="" disabled>{C.pick}</option>
+              {staff.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          ) : (
+            <input value={waiterName} maxLength={30} onChange={(e) => setWaiterName(e.target.value)} autoComplete="given-name" className="h-14 w-full rounded-xl border border-input bg-background text-center text-xl font-bold" />
+          )}
           {err && <p className="text-sm font-bold text-destructive">{err}</p>}
-          <button onClick={connect} disabled={pinInput.length !== 4 || !waiterName.trim()} className="h-14 w-full rounded-xl bg-primary text-lg font-extrabold text-primary-foreground disabled:opacity-40">{w.connect}</button>
+          <button onClick={connect} disabled={pinInput.length !== 4 || !waiterName.trim() || (staff.length > 0 && !staff.includes(waiterName))} className="h-14 w-full rounded-xl bg-primary text-lg font-extrabold text-primary-foreground disabled:opacity-40">{w.connect}</button>
         </div>
       </div>
     );
@@ -165,6 +198,12 @@ function Waiter() {
         </div>
       </header>
       {editId && <div className="flex items-center gap-2 bg-accent px-4 py-2 font-bold text-accent-foreground"><Pencil size={16} /><span className="flex-1">{w.editing}</span><button onClick={stopEdit} className="h-9 rounded-lg bg-background/30 px-3 text-sm">{w.stopEdit}</button></div>}
+      {staff.includes(waiterName.trim()) && (
+        <div className={`flex items-center gap-2 px-3 py-2 ${dutySince ? "bg-success/15" : "bg-muted"}`}>
+          <span className="flex-1 text-sm font-bold">{dutySince ? `${C.since} ${new Date(dutySince).toLocaleTimeString(lang === "ar" ? "ar-DZ" : lang === "fr" ? "fr-FR" : "en-GB", { hour: "2-digit", minute: "2-digit" })}` : C.off}</span>
+          <button onClick={() => clock(dutySince ? "out" : "in")} disabled={clockBusy} className={`h-10 rounded-xl px-4 text-sm font-extrabold disabled:opacity-50 ${dutySince ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground"}`}>{dutySince ? C.out : C.in}</button>
+        </div>
+      )}
       {err && <p className="bg-destructive/10 px-4 py-2 text-center text-sm font-bold text-destructive">{err}</p>}
       <div className="flex gap-2 px-3 pt-3">
         <div className="relative flex-1">
