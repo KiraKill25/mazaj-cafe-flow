@@ -2,9 +2,10 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, BarChart3, Check, Package, Pencil, Trash2, X } from "lucide-react";
-import { CX, fmtDate, money, periodStart, setPos, summarize, summarizeExpenses, parseAmount, round2, usePos, type Lang } from "@/lib/pos";
+import { CX, fmtDate, money, setPos, summarize, summarizeExpenses, parseAmount, round2, usePos, type Lang } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { PinGate } from "@/components/PinGate";
+import { PeriodPicker, initialPeriod, periodRange } from "@/components/PeriodPicker";
 
 export const Route = createFileRoute("/expenses")({
   head: () => ({
@@ -27,7 +28,6 @@ const L = {
   ar: { title: "المصاريف", add: "إضافة مصروف", label: "الوصف", amount: "المبلغ", date: "التاريخ", note: "ملاحظة (اختياري)", cats: "فئات المصاريف", addCat: "إضافة فئة", total: "مجموع المصاريف", revenue: "المبيعات", net: "صافي النتيجة", none: "لا توجد مصاريف في هذه الفترة", today: "اليوم", week: "هذا الأسبوع", month: "هذا الشهر", year: "هذه السنة", all: "الكل", del: "حذف", other: "أخرى", name: "الاسم" },
 };
 
-type Period = "day" | "week" | "month" | "year" | "all";
 type Names = Record<Lang, string>;
 const blank: Names = { fr: "", en: "", ar: "" };
 const fill = (n: Names): Names => ({ fr: n.fr.trim(), en: n.en.trim() || n.fr.trim(), ar: n.ar.trim() || n.fr.trim() });
@@ -38,14 +38,14 @@ function Expenses() {
   const pos = usePos();
   const t = L[pos.lang];
   const cats = pos.expenseCategories ?? [];
-  const [period, setPeriod] = useState<Period>("month");
+  const [pv, setPv] = useState(() => initialPeriod("month"));
   const [draft, setDraft] = useState({ label: "", amount: "", category: cats[0]?.id ?? "", date: today(), note: "", fromDrawer: false });
   const [newCat, setNewCat] = useState<Names>(blank);
   const [editCat, setEditCat] = useState<{ id: string; name: Names } | null>(null);
 
-  const from = period === "all" ? 0 : periodStart(period);
-  const r = summarizeExpenses(pos.expenses ?? [], from);
-  const revenue = summarize(pos.sales ?? [], from).revenue;
+  const [from, to] = periodRange(pv);
+  const r = summarizeExpenses(pos.expenses ?? [], from, to);
+  const revenue = summarize(pos.sales ?? [], from, to).revenue;
   const catName = (id: string) => cats.find((c) => c.id === id)?.name[pos.lang] ?? t.other;
 
   const add = () => {
@@ -91,11 +91,7 @@ function Expenses() {
 
       <div className="mx-auto grid max-w-6xl gap-6 p-4 lg:grid-cols-[1fr_340px]">
         <section className="space-y-6">
-          <div className="flex gap-2 rounded-2xl bg-muted p-1 sm:w-fit">
-            {(["day", "week", "month", "year", "all"] as const).map((p) => (
-              <button key={p} onClick={() => setPeriod(p)} className={`h-12 flex-1 rounded-xl px-2 font-bold sm:flex-none sm:px-4 ${period === p ? "bg-foreground text-background" : "text-muted-foreground"}`}>{{ day: t.today, week: t.week, month: t.month, year: t.year, all: t.all }[p]}</button>
-            ))}
-          </div>
+          <PeriodPicker value={pv} onChange={setPv} lang={pos.lang} options={["day", "week", "month", "year", "all", "custom"]} />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {stat(t.revenue, money(revenue, pos.currency))}
             {stat(t.total, money(r.total, pos.currency), "text-destructive")}

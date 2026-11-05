@@ -5,6 +5,7 @@ import { ArrowLeft, Download, Upload } from "lucide-react";
 import { CX, DENOMS, denomTotal, TX, fmtDateTime, money, openSession, parseAmount, replacePos, sessionTotals, setPos, toCsv, usePos, type PosState, type Session } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { PinGate } from "@/components/PinGate";
+import { PeriodPicker, initialPeriod, periodRange } from "@/components/PeriodPicker";
 
 export const Route = createFileRoute("/cash")({
   head: () => ({
@@ -51,6 +52,7 @@ function Cash() {
     const sum = denomTotal(next);
     setCounted(sum ? String(sum) : "");
   };
+  const [pv, setPv] = useState(() => initialPeriod("all"));
   const [printed, setPrinted] = useState<Session | null>(null);
   const [askBackup, setAskBackup] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -111,7 +113,8 @@ function Cash() {
   const tot = sess ? sessionTotals(pos, sess) : null;
   const n = parseAmount(counted);
   const liveDiff = tot && n >= 0 ? n - tot.expected : null;
-  const past = [...(pos.sessions ?? [])].filter((s) => s.closedAt).reverse();
+  const [range0, range1] = periodRange(pv);
+  const past = [...(pos.sessions ?? [])].filter((s) => s.closedAt && s.openedAt < range1 && s.closedAt >= range0).reverse();
 
   return (
     <div className="min-h-dvh bg-background">
@@ -168,6 +171,7 @@ function Cash() {
 
           <div className="space-y-2">
             <h2 className="font-display text-lg font-extrabold">{c.sessions}</h2>
+            <PeriodPicker value={pv} onChange={setPv} lang={pos.lang} options={["all", "day", "week", "month", "custom"]} />
             {past.map((s) => {
               const r = sessionTotals(pos, s);
               return (
