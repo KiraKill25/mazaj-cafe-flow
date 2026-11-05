@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { appendLog, resolveImage, setPos, type PosState, type WaiterLogEntry } from "@/lib/pos";
+import { appendLog, applyClock, resolveImage, type ClockEvent, setPos, type PosState, type WaiterLogEntry } from "@/lib/pos";
 import type { WaiterOrder } from "@/routes/api/public/waiter";
 
 export type { WaiterOrder };
