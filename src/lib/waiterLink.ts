@@ -29,18 +29,19 @@ function chime() {
 }
 
 /** Register side: publishes the menu + PIN on the local relay and polls waiter orders. */
-export function useWaiterLink(pos: PosState) {
+export function useWaiterLink(pos: PosState, enabled = true) {
   const [orders, setOrders] = useState<WaiterOrder[]>([]);
   const [online, setOnline] = useState(false);
   const seen = useRef<Map<string, WaiterOrder> | null>(null);
   const acked = useRef<string[]>([]);
 
   useEffect(() => {
+    if (!enabled) return;
     if (!pos.linkKey || !pos.waiterPin) setPos((s) => ({ ...s, linkKey: s.linkKey || crypto.randomUUID(), waiterPin: s.waiterPin || newPin() }));
-  }, [pos.linkKey, pos.waiterPin]);
+  }, [enabled, pos.linkKey, pos.waiterPin]);
 
   useEffect(() => {
-    if (!pos.linkKey || !pos.waiterPin) return;
+    if (!enabled || !pos.linkKey || !pos.waiterPin) return;
     const menu = {
       currency: pos.currency,
       categories: pos.categories,
@@ -51,10 +52,10 @@ export function useWaiterLink(pos: PosState) {
     send();
     const id = setInterval(send, 30000);
     return () => clearInterval(id);
-  }, [pos.linkKey, pos.waiterPin, pos.items, pos.categories, pos.currency, pos.staff, pos.attendance]);
+  }, [enabled, pos.linkKey, pos.waiterPin, pos.items, pos.categories, pos.currency, pos.staff, pos.attendance]);
 
   useEffect(() => {
-    if (!pos.linkKey) return;
+    if (!enabled || !pos.linkKey) return;
     let stop = false;
     const tick = async () => {
       try {
@@ -83,7 +84,7 @@ export function useWaiterLink(pos: PosState) {
     tick();
     const id = setInterval(tick, 3000);
     return () => { stop = true; clearInterval(id); };
-  }, [pos.linkKey]);
+  }, [enabled, pos.linkKey]);
 
   const done = async (id: string) => {
     setOrders((o) => o.filter((x) => x.id !== id));

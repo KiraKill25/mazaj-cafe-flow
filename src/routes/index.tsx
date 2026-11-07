@@ -8,7 +8,8 @@ import { LangBar, useDir } from "@/components/LangBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Splash } from "@/components/Splash";
 import { pickFortune, THANKS } from "@/lib/fortunes";
-import { newPin, useWaiterLink, type WaiterOrder } from "@/lib/waiterLink";
+import { newPin, type WaiterOrder } from "@/lib/waiterLink";
+import { useLink } from "@/components/WaiterLinkProvider";
 import { QRCodeSVG } from "qrcode.react";
 import { MoodPicker } from "@/components/MoodPicker";
 
@@ -48,7 +49,7 @@ function Register() {
   const [printed, setPrinted] = useState<Done | null>(null);
   const [fromWaiter, setFromWaiter] = useState<WaiterOrder | null>(null);
   const [showWaiter, setShowWaiter] = useState(false);
-  const link = useWaiterLink(pos);
+  const link = useLink();
   const [q, setQ] = useState("");
   const [printRec, setPrintRec] = useState(true);
   const [printKit, setPrintKit] = useState(true);

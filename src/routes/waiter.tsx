@@ -89,6 +89,7 @@ function Waiter() {
     setClockBusy(false);
   };
   const dutySince = onDuty[waiterName.trim()];
+  const LX = { en: "Also record your exit (clock out)?", fr: "Voulez-vous aussi enregistrer votre sortie ?", ar: "هل تريد أيضاً تسجيل خروجك؟" }[lang];
 
   const loadMenu = useCallback(async (p: string) => {
     try {
@@ -194,7 +195,7 @@ function Waiter() {
           <ThemeToggle />
           <button onClick={() => { setRenewTable(""); setRenew(true); }} aria-label="Mazaj game" title="Mazaj game" className="flex h-11 items-center gap-1 rounded-xl bg-accent px-2 text-xs font-bold text-accent-foreground"><Sparkles size={16} /><span className="hidden sm:inline">{{ ar: "لعبة مزاج", fr: "Jeu Mazaj", en: "Mazaj game" }[lang]}</span></button>
           <button onClick={() => setShowOrders(true)} aria-label={w.orders} title={w.orders} className="relative grid h-11 w-11 place-items-center rounded-xl bg-accent text-accent-foreground"><ClipboardList size={18} />{orders.length > 0 && <span className="absolute -end-1 -top-1 min-w-5 rounded-full bg-primary px-1 text-xs leading-5 text-primary-foreground">{orders.length}</span>}</button>
-          <button onClick={() => { localStorage.removeItem(PIN_KEY); setPin(""); setMenu(null); }} aria-label={w.logout} title={w.logout} className="grid h-11 w-11 place-items-center rounded-xl bg-muted"><LogOut size={18} /></button>
+          <button onClick={async () => { if (dutySince && window.confirm(LX)) { try { await relay({ action: "clock", pin, name: waiterName.trim(), kind: "out" }); } catch { /* offline */ } } localStorage.removeItem(PIN_KEY); setPin(""); setMenu(null); }} aria-label={w.logout} title={w.logout} className="grid h-11 w-11 place-items-center rounded-xl bg-muted"><LogOut size={18} /></button>
         </div>
       </header>
       {editId && <div className="flex items-center gap-2 bg-accent px-4 py-2 font-bold text-accent-foreground"><Pencil size={16} /><span className="flex-1">{w.editing}</span><button onClick={stopEdit} className="h-9 rounded-lg bg-background/30 px-3 text-sm">{w.stopEdit}</button></div>}

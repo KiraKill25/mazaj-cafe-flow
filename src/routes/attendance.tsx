@@ -2,7 +2,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Download, Trash2, UserPlus } from "lucide-react";
-import { fmtDateTime, fmtDuration, setPos, toCsv, usePos, workedMs } from "@/lib/pos";
+import { applyClock, fmtDateTime, fmtDuration, setPos, toCsv, usePos, workedMs } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { PinGate } from "@/components/PinGate";
 import { PeriodPicker, initialPeriod, periodRange } from "@/components/PeriodPicker";
@@ -23,9 +23,9 @@ export const Route = createFileRoute("/attendance")({
 });
 
 const L = {
-  en: { title: "Attendance", team: "Waiters", add: "Add", name: "First name", onDuty: "On duty now", none: "Nobody on duty", since: "since", history: "History", total: "Hours worked", in: "In", out: "Out", open: "in progress", csv: "Export CSV", del: "Remove this waiter?", empty: "No records in this period" },
-  fr: { title: "Pointage", team: "Serveurs", add: "Ajouter", name: "Prénom", onDuty: "En service maintenant", none: "Personne en service", since: "depuis", history: "Historique", total: "Heures travaillées", in: "Entrée", out: "Sortie", open: "en cours", csv: "Exporter CSV", del: "Retirer ce serveur ?", empty: "Aucun pointage sur cette période" },
-  ar: { title: "الحضور", team: "النُدُل", add: "إضافة", name: "الاسم", onDuty: "في الخدمة الآن", none: "لا أحد في الخدمة", since: "منذ", history: "السجل", total: "ساعات العمل", in: "دخول", out: "خروج", open: "جارٍ", csv: "تصدير CSV", del: "حذف هذا النادل؟", empty: "لا توجد سجلات في هذه الفترة" },
+  en: { title: "Attendance", team: "Waiters", add: "Add", name: "First name", onDuty: "On duty now", none: "Nobody on duty", since: "since", history: "History", total: "Hours worked", in: "In", out: "Out", open: "in progress", csv: "Export CSV", del: "Remove this waiter?", empty: "No records in this period", clockIn: "Clock in", clockOut: "Clock out", confirmOut: "Record the exit for" },
+  fr: { title: "Pointage", team: "Serveurs", add: "Ajouter", name: "Prénom", onDuty: "En service maintenant", none: "Personne en service", since: "depuis", history: "Historique", total: "Heures travaillées", in: "Entrée", out: "Sortie", open: "en cours", csv: "Exporter CSV", del: "Retirer ce serveur ?", empty: "Aucun pointage sur cette période", clockIn: "Pointer l'entrée", clockOut: "Pointer la sortie", confirmOut: "Enregistrer la sortie de" },
+  ar: { title: "الحضور", team: "النُدُل", add: "إضافة", name: "الاسم", onDuty: "في الخدمة الآن", none: "لا أحد في الخدمة", since: "منذ", history: "السجل", total: "ساعات العمل", in: "دخول", out: "خروج", open: "جارٍ", csv: "تصدير CSV", del: "حذف هذا النادل؟", empty: "لا توجد سجلات في هذه الفترة", clockIn: "تسجيل الدخول", clockOut: "تسجيل الخروج", confirmOut: "تسجيل خروج" },
 };
 
 function Attendance() {
@@ -47,6 +47,10 @@ function Attendance() {
     if (!n || staff.includes(n)) return;
     setPos((s) => ({ ...s, staff: [...(s.staff ?? []), n] }));
     setName("");
+  };
+  const punch = (n: string, kind: "in" | "out") => {
+    if (kind === "out" && !confirm(`${t.confirmOut} ${n} ?`)) return;
+    setPos((s) => ({ ...s, attendance: applyClock(s.attendance, { id: crypto.randomUUID(), name: n, kind, at: Date.now() }) }));
   };
   const csv = () => {
     const a = document.createElement("a");
@@ -76,7 +80,12 @@ function Attendance() {
             {staff.map((n) => (
               <div key={n} className="flex items-center justify-between rounded-xl bg-muted px-3 py-2 font-bold">
                 <span>{n}</span>
+                <span className="flex items-center gap-1">
+                {onDuty.some((x) => x.name === n)
+                  ? <button onClick={() => punch(n, "out")} className="h-9 rounded-lg bg-destructive px-2 text-xs font-bold text-destructive-foreground">{t.clockOut}</button>
+                  : <button onClick={() => punch(n, "in")} className="h-9 rounded-lg bg-success px-2 text-xs font-bold text-success-foreground">{t.clockIn}</button>}
                 <button onClick={() => confirm(t.del) && setPos((s) => ({ ...s, staff: (s.staff ?? []).filter((x) => x !== n) }))} aria-label="Remove" className="grid h-9 w-9 place-items-center rounded-lg text-destructive"><Trash2 size={16} /></button>
+                </span>
               </div>
             ))}
           </div>
@@ -87,6 +96,7 @@ function Attendance() {
               <div key={s.id} className="flex items-center justify-between rounded-xl bg-success/15 px-3 py-2">
                 <span className="font-bold">{s.name}</span>
                 <span className="text-sm">{t.since} {fmtDateTime(s.in, pos.lang)} · <b>{fmtDuration(now - s.in)}</b></span>
+                <button onClick={() => punch(s.name, "out")} className="h-9 rounded-lg bg-destructive px-2 text-xs font-bold text-destructive-foreground">{t.clockOut}</button>
               </div>
             ))}
           </div>

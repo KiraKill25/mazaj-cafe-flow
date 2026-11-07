@@ -118,7 +118,15 @@ function load(): PosState {
 
 /** Factory reset: back to a brand-new install (keeps only the display language). */
 export function resetToFactory() {
-  setPos((s) => ({ ...seed(), lang: s.lang }));
+  const lang = load().lang;
+  state = { ...seed(), lang };
+  try {
+    // Drop every app key (old versions, caches) except display preferences.
+    const keep = new Set(["mazaj-theme", "mazaj-waiter-host"]);
+    Object.keys(localStorage).forEach((k) => { if (!keep.has(k)) localStorage.removeItem(k); });
+    localStorage.setItem(KEY, JSON.stringify(state));
+  } catch { /* storage unavailable */ }
+  listeners.forEach((l) => l());
 }
 
 /** Replace the whole state (used by backup restore). */

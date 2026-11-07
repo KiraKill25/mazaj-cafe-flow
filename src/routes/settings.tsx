@@ -64,14 +64,24 @@ function Settings({ lock }: { lock: () => void }) {
     if (ok) setPos((s) => ({ ...s, lastBackup: Date.now() }));
   };
   const RX = {
-    en: { btn: "Factory reset (erase everything)", backup: "A full backup will be saved first. Continue?", noBackup: "Backup was not saved — reset cancelled.", pin: "Enter the manager PIN to confirm the reset:", wrong: "Wrong PIN — reset cancelled.", confirm: "FINAL WARNING: all sales, register sessions, expenses, open tabs, order numbers, menu edits and the PIN (back to 1234) will be erased. Continue?", done: "The app has been reset." },
-    fr: { btn: "Réinitialisation complète (tout effacer)", backup: "Une sauvegarde complète va d'abord être enregistrée. Continuer ?", noBackup: "Sauvegarde non enregistrée — réinitialisation annulée.", pin: "Saisissez le PIN gérant pour confirmer la réinitialisation :", wrong: "PIN incorrect — réinitialisation annulée.", confirm: "DERNIER AVERTISSEMENT : ventes, clôtures, charges, notes de table, numéros de commande, modifications du menu et PIN (remis à 1234) seront effacés. Continuer ?", done: "L'application a été réinitialisée." },
-    ar: { btn: "إعادة ضبط المصنع (مسح كل شيء)", backup: "سيتم حفظ نسخة احتياطية كاملة أولاً. متابعة؟", noBackup: "لم يتم حفظ النسخة — أُلغيت إعادة الضبط.", pin: "أدخل رمز المدير لتأكيد إعادة الضبط:", wrong: "رمز خاطئ — أُلغيت إعادة الضبط.", confirm: "تحذير أخير: سيتم مسح المبيعات والجلسات والمصاريف والطاولات المفتوحة وأرقام الطلبات وتعديلات القائمة والرمز (يعود إلى 1234). متابعة؟", done: "تمت إعادة ضبط التطبيق." },
+    en: { btn: "Factory reset (erase everything)", backup: "A full backup will be saved first. Continue?", noBackup: "The backup was downloaded to your Downloads folder. Continue with the reset?", pin: "Enter the manager PIN to confirm the reset:", wrong: "Wrong PIN — reset cancelled.", confirm: "FINAL WARNING: all sales, register sessions, expenses, open tabs, order numbers, menu edits and the PIN (back to 1234) will be erased. Continue?", done: "The app has been reset." },
+    fr: { btn: "Réinitialisation complète (tout effacer)", backup: "Une sauvegarde complète va d'abord être enregistrée. Continuer ?", noBackup: "La sauvegarde a été téléchargée dans votre dossier Téléchargements. Continuer la réinitialisation ?", pin: "Saisissez le PIN gérant pour confirmer la réinitialisation :", wrong: "PIN incorrect — réinitialisation annulée.", confirm: "DERNIER AVERTISSEMENT : ventes, clôtures, charges, notes de table, numéros de commande, modifications du menu et PIN (remis à 1234) seront effacés. Continuer ?", done: "L'application a été réinitialisée." },
+    ar: { btn: "إعادة ضبط المصنع (مسح كل شيء)", backup: "سيتم حفظ نسخة احتياطية كاملة أولاً. متابعة؟", noBackup: "تم تنزيل النسخة الاحتياطية في مجلد التنزيلات. متابعة إعادة الضبط؟", pin: "أدخل رمز المدير لتأكيد إعادة الضبط:", wrong: "رمز خاطئ — أُلغيت إعادة الضبط.", confirm: "تحذير أخير: سيتم مسح المبيعات والجلسات والمصاريف والطاولات المفتوحة وأرقام الطلبات وتعديلات القائمة والرمز (يعود إلى 1234). متابعة؟", done: "تمت إعادة ضبط التطبيق." },
   }[pos.lang];
   const factoryReset = async () => {
     if (!confirm(RX.backup)) return;
-    const ok = await saveFile(`MAZAJ-backup-avant-reinit-${stamp()}.json`, JSON.stringify({ app: "mazaj-pos", version: 1, savedAt: Date.now(), data: pos }), "application/json");
-    if (!ok) { alert(RX.noBackup); return; }
+    const data = JSON.stringify({ app: "mazaj-pos", version: 1, savedAt: Date.now(), data: pos });
+    const name = `MAZAJ-backup-avant-reinit-${stamp()}.json`;
+    let ok = false;
+    try { ok = await saveFile(name, data, "application/json"); } catch { ok = false; }
+    if (!ok) {
+      // Fallback: plain download (always works in app mode)
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+      a.download = name;
+      a.click();
+      if (!confirm(RX.noBackup)) return;
+    }
     const p = prompt(RX.pin);
     if (p === null) return;
     if (p !== pos.pin) { alert(RX.wrong); return; }
@@ -79,6 +89,7 @@ function Settings({ lock }: { lock: () => void }) {
     resetToFactory();
     alert(RX.done);
     lock();
+    window.location.replace("/");
   };
   const restore = async (f: File) => {
     try {
